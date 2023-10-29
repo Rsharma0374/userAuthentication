@@ -9,6 +9,7 @@ import com.chat.userAuthentication.response.Payload;
 import com.chat.userAuthentication.response.Status;
 import com.chat.userAuthentication.service.HomeManager;
 import com.chat.userAuthentication.utility.ResponseUtility;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import javax.servlet.http.HttpServletRequest;
+//import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
 
 @Service

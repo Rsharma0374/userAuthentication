@@ -1,9 +1,10 @@
-package com.chat.userAuthentication.userController;
+package com.chat.userAuthentication.controller;
 
 import com.chat.userAuthentication.request.LoginRequest;
 import com.chat.userAuthentication.request.UserCreation;
 import com.chat.userAuthentication.response.BaseResponse;
 import com.chat.userAuthentication.service.HomeManager;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,8 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import javax.servlet.http.HttpServletRequest;
+//import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 
 @RestController

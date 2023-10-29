@@ -3,6 +3,7 @@ package com.chat.userAuthentication.config;
 import com.chat.userAuthentication.model.JwtRequest;
 import com.chat.userAuthentication.model.JwtResponse;
 import com.chat.userAuthentication.security.JwtHelper;
+import com.chat.userAuthentication.controller.EndPointReferrer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +32,7 @@ public class AuthController {
     private final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 
-    @PostMapping("/get-token")
+    @PostMapping(EndPointReferrer.GET_TOKEN)
     public ResponseEntity<JwtResponse> login(@RequestBody JwtRequest request) {
 
         this.doAuthenticate(request.getEmail(), request.getPassword());
