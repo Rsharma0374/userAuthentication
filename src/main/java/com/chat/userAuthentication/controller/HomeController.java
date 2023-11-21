@@ -17,9 +17,9 @@ import javax.validation.constraints.NotNull;
 
 @RestController
 @RequestMapping("/user")
-public class ApiController {
+public class HomeController {
 
-    private static final Logger logger = LoggerFactory.getLogger(ApiController.class);
+    private static final Logger logger = LoggerFactory.getLogger(HomeController.class);
 
     @Autowired
     private HomeManager homeManager;

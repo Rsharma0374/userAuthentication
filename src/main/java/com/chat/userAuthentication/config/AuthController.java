@@ -4,6 +4,7 @@ import com.chat.userAuthentication.model.JwtRequest;
 import com.chat.userAuthentication.model.JwtResponse;
 import com.chat.userAuthentication.security.JwtHelper;
 import com.chat.userAuthentication.controller.EndPointReferrer;
+import com.chat.userAuthentication.service.AuthTokenService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,40 +30,16 @@ public class AuthController {
     @Autowired
     private JwtHelper helper;
 
+    @Autowired
+    AuthTokenService authTokenService;
+
     private final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 
     @PostMapping(EndPointReferrer.GET_TOKEN)
     public ResponseEntity<JwtResponse> login(@RequestBody JwtRequest request) {
 
-        this.doAuthenticate(request.getEmail(), request.getPassword());
-
-
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-        String token = this.helper.generateToken(userDetails);
-
-        JwtResponse response = JwtResponse.builder()
-                .jwtToken(token)
-                .username(userDetails.getUsername()).build();
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
-    private void doAuthenticate(String email, String password) {
-
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email, password);
-        try {
-            manager.authenticate(authentication);
-
-
-        } catch (BadCredentialsException e) {
-            throw new BadCredentialsException(" Invalid Username or Password  !!");
-        }
-
-    }
-
-    @ExceptionHandler(BadCredentialsException.class)
-    public String exceptionHandler() {
-        return "Credentials Invalid !!";
+        return new ResponseEntity<>(authTokenService.getToken(request), HttpStatus.OK);
     }
 
 }

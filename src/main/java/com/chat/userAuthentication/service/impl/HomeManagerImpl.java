@@ -1,12 +1,17 @@
 package com.chat.userAuthentication.service.impl;
 
+import com.chat.userAuthentication.config.AuthController;
 import com.chat.userAuthentication.dao.MongoService;
+import com.chat.userAuthentication.model.JwtRequest;
+import com.chat.userAuthentication.model.JwtResponse;
 import com.chat.userAuthentication.request.LoginRequest;
 import com.chat.userAuthentication.request.UserCreation;
 import com.chat.userAuthentication.response.BaseResponse;
 import com.chat.userAuthentication.response.Error;
 import com.chat.userAuthentication.response.Payload;
 import com.chat.userAuthentication.response.Status;
+import com.chat.userAuthentication.response.login.LoginResponse;
+import com.chat.userAuthentication.service.AuthTokenService;
 import com.chat.userAuthentication.service.HomeManager;
 import com.chat.userAuthentication.utility.ResponseUtility;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,9 +34,13 @@ public class HomeManagerImpl implements HomeManager {
     @Autowired
     MongoService mongoService;
 
+    @Autowired
+    AuthTokenService authTokenService;
+
     @Override
     public BaseResponse login(LoginRequest loginRequest, HttpServletRequest httpRequest) throws Exception {
         logger.info("Inside login request");
+        LoginResponse loginResponse = new LoginResponse();
         try {
             //Check password is correct or not with SHA encryption
             UserCreation userCreation = mongoService.getUserFromUserName(loginRequest.getUserName());
@@ -43,7 +52,9 @@ public class HomeManagerImpl implements HomeManager {
             String encryptedPassword = ResponseUtility.encryptThisString(userCreation.getPassword());
 
             if (StringUtils.equalsIgnoreCase(encryptedPassword, loginRequest.getShaPassword())) {
-                return ResponseUtility.getBaseResponse(HttpStatus.OK, "Access Granted");
+                loginResponse.setResponse("Access Granted");
+                settingToken(loginResponse);
+                return ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
             } else {
                 return ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, "Password Incorrect");
             }
@@ -53,6 +64,18 @@ public class HomeManagerImpl implements HomeManager {
             error.setMessage(ex.getMessage());
             logger.error("Exception occurred while login due to - ", ex);
             return ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+        }
+    }
+
+    private void settingToken(LoginResponse loginResponse) throws Exception {
+        JwtRequest request = new JwtRequest();
+        request.setEmail("RAHUL");
+        request.setPassword("RAHUL");
+        JwtResponse response = authTokenService.getToken(request);
+        if (response != null) {
+            loginResponse.setToken(response.getJwtToken());
+        } else {
+            throw new Exception("Token Not found");
         }
     }
 
