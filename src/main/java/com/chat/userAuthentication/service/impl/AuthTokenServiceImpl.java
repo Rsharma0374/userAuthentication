@@ -33,9 +33,11 @@ public class AuthTokenServiceImpl implements AuthTokenService {
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
         String token = this.helper.generateToken(userDetails);
 
-        return JwtResponse.builder()
+        JwtResponse jwtResponse = new JwtResponse.Builder()
                 .jwtToken(token)
-                .username(userDetails.getUsername()).build();
+                .username(userDetails.getUsername())
+                .build();
+        return jwtResponse;
     }
 
     private void doAuthenticate(String email, String password) {
