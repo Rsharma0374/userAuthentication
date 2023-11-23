@@ -94,9 +94,9 @@ public class HomeManagerImpl implements HomeManager {
             boolean success = mongoService.saveData(userCreation);
 
             if (success) {
-                return ResponseUtility.getBaseResponse(HttpStatus.OK, "Data Saved successfully");
+                return ResponseUtility.getBaseResponse(HttpStatus.OK, "User Created Successfully");
             } else {
-                return ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Data Not Saved");
+                return ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, "User creation failed..");
             }
         } catch (Exception ex) {
             Error error = new Error();
