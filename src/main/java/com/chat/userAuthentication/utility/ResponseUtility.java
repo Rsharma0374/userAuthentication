@@ -3,18 +3,26 @@ package com.chat.userAuthentication.utility;
 import com.chat.userAuthentication.response.BaseResponse;
 import com.chat.userAuthentication.response.Payload;
 import com.chat.userAuthentication.response.Status;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
+import java.util.Random;
 
 public class ResponseUtility {
 
     private static final Logger logger = LoggerFactory.getLogger(ResponseUtility.class);
+
+    private static ObjectMapper mapper = new ObjectMapper().registerModule(new JodaModule());
 
     public static BaseResponse getBaseResponse(HttpStatus httpStatus, Object buzResponse) {
         logger.info("Inside getBaseResponse method");
@@ -61,6 +69,31 @@ public class ResponseUtility {
             logger.error("Exception occurred at sha conversion due to - ", e);
             throw new RuntimeException(e);
         }
+    }
+
+    public static String generateOtpAgainstLength(int length) {
+        // Using numeric values
+        String numbers = "0123456789";
+
+        // Using random method
+        Random rndm_method = new Random();
+
+        StringBuilder  otp=new StringBuilder();
+
+        for (int i = 0; i < length; i++) {
+            otp.append(numbers.charAt(rndm_method.nextInt(numbers.length())));
+        }
+        return otp.toString();
+    }
+
+    public static String ObjectToString(Object object) throws JsonProcessingException {
+        // mapper.configure(MapperFeature.CAN_OVERRIDE_ACCESS_MODIFIERS,false);
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return mapper.writeValueAsString(object);
+    }
+
+    public static <T> T StringToObject(String jsonString, Class<?> type) throws IOException {
+        return (T)mapper.readValue(jsonString, type);
 
     }
 }

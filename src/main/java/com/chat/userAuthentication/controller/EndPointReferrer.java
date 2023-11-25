@@ -8,4 +8,6 @@ public class EndPointReferrer {
 
     public static final String GET_TOKEN = "get-token";
 
+    public static final String  SEND_EMAIL_OTP = "send-email-otp";
+
 }

@@ -10,6 +10,9 @@ public class LoginResponse {
     @JsonProperty("sToken")
     private String token;
 
+    @JsonProperty("sServerSideValidation")
+    private String serverSideValidation;
+
     public String getResponse() {
         return response;
     }
@@ -24,5 +27,13 @@ public class LoginResponse {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getServerSideValidation() {
+        return serverSideValidation;
+    }
+
+    public void setServerSideValidation(String serverSideValidation) {
+        this.serverSideValidation = serverSideValidation;
     }
 }

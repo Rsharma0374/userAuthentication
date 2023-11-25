@@ -1,5 +1,6 @@
 package com.chat.userAuthentication.controller;
 
+import com.chat.userAuthentication.request.EmailOtpRequest;
 import com.chat.userAuthentication.request.LoginRequest;
 import com.chat.userAuthentication.request.UserCreation;
 import com.chat.userAuthentication.response.BaseResponse;
@@ -23,6 +24,12 @@ public class HomeController {
 
     @Autowired
     private HomeManager homeManager;
+
+    //
+    @GetMapping("/hello")
+    public String getResult(){
+        return "hello";
+    }
 
     @PostMapping(EndPointReferrer.LOGIN)
     public ResponseEntity<BaseResponse> getLogin(
@@ -51,9 +58,20 @@ public class HomeController {
 
     }
 
-    //
-    @GetMapping("/hello")
-    public String getResult(){
-        return "hello";
+    @PostMapping(EndPointReferrer.SEND_EMAIL_OTP)
+    public ResponseEntity<BaseResponse> sendEmailOtp(
+            @RequestBody @NotNull EmailOtpRequest emailOtpRequest) {
+        try {
+            logger.debug("{} controller started",EndPointReferrer.SEND_EMAIL_OTP);
+
+            return new ResponseEntity<>(homeManager.sendOtp(emailOtpRequest), HttpStatus.OK);
+
+        } catch (Exception e) {
+            logger.error("Exception occurred in request with cause - ");
+        }
+        return null;
+
     }
+
+
 }
