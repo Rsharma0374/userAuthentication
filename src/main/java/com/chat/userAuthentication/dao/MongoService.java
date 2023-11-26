@@ -20,4 +20,6 @@ public interface MongoService {
     boolean saveEmailResResLog(EmailReqResLog emailReqResLog) throws Exception;
 
     EmailReqResLog getEmailReqResLog(ValidateOtpRequest validateOtpRequest);
+
+    boolean checkExistenceWithEmail(String email);
 }

@@ -59,13 +59,13 @@ public class HomeController {
 
     }
 
-    @PostMapping(EndPointReferrer.SEND_EMAIL_OTP)
-    public ResponseEntity<BaseResponse> sendEmailOtp(
+    @PostMapping(EndPointReferrer.FORGET_PASSWORD)
+    public ResponseEntity<BaseResponse> sendForgotEmailOtp(
             @RequestBody @NotNull EmailOtpRequest emailOtpRequest) {
         try {
-            logger.debug("{} controller started",EndPointReferrer.SEND_EMAIL_OTP);
+            logger.debug("{} controller started",EndPointReferrer.FORGET_PASSWORD);
 
-            return new ResponseEntity<>(homeManager.sendOtp(emailOtpRequest), HttpStatus.OK);
+            return new ResponseEntity<>(homeManager.sendForgotOtp(emailOtpRequest), HttpStatus.OK);
 
         } catch (Exception e) {
             logger.error("Exception occurred in request with cause - ");

@@ -144,4 +144,20 @@ public class MongoServiceImpl implements MongoService{
             return null;
         }
     }
+
+    @Override
+    public boolean checkExistenceWithEmail(String email) {
+        logger.info("Inside check existence method");
+
+        try {
+            Query query = new Query();
+            query.addCriteria(Criteria.where("emailId").is(email)
+                    .and("accountActive").is(true));
+
+            return mongoTemplate.exists(query, "userCreation");
+        } catch (Exception e) {
+            logger.error("Exception occurred due to - ", e);
+            return false;
+        }
+    }
 }

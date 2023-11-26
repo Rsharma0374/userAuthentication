@@ -123,7 +123,7 @@ public class HomeManagerImpl implements HomeManager {
     }
 
     @Override
-    public BaseResponse sendOtp(EmailOtpRequest emailOtpRequest) throws Exception {
+    public BaseResponse sendForgotOtp(EmailOtpRequest emailOtpRequest) throws Exception {
         logger.info("Inside sendOtp method...");
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
@@ -139,6 +139,9 @@ public class HomeManagerImpl implements HomeManager {
 
             if (emailConfiguration == null) {
                 return ResponseUtility.getBaseResponse(HttpStatus.NO_CONTENT, Constants.CONF_NOT_FOUND);
+            }
+            if (!mongoService.checkExistenceWithEmail(emailOtpRequest.getEmailId())) {
+                return ResponseUtility.getBaseResponse(HttpStatus.CONFLICT, "No User Found with email: " + emailOtpRequest.getEmailId());
             }
 
             //Check email flooding

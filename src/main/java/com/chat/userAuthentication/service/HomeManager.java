@@ -16,7 +16,7 @@ public interface HomeManager {
 
     BaseResponse createUser(UserCreation userCreation);
 
-    BaseResponse sendOtp(EmailOtpRequest emailOtpRequest) throws Exception;
+    BaseResponse sendForgotOtp(EmailOtpRequest emailOtpRequest) throws Exception;
 
     BaseResponse validateOtp(ValidateOtpRequest validateOtpRequest);
 }
