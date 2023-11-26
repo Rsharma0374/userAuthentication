@@ -3,6 +3,7 @@ package com.chat.userAuthentication.dao;
 import com.chat.userAuthentication.configuration.EmailConfiguration;
 import com.chat.userAuthentication.model.email.EmailReqResLog;
 import com.chat.userAuthentication.request.UserCreation;
+import com.chat.userAuthentication.request.ValidateOtpRequest;
 
 
 public interface MongoService {
@@ -17,4 +18,6 @@ public interface MongoService {
     long getEmailTriggerCount(String emailId, String productName, String emailType);
 
     boolean saveEmailResResLog(EmailReqResLog emailReqResLog) throws Exception;
+
+    EmailReqResLog getEmailReqResLog(ValidateOtpRequest validateOtpRequest);
 }

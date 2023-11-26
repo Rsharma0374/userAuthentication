@@ -3,6 +3,7 @@ package com.chat.userAuthentication.controller;
 import com.chat.userAuthentication.request.EmailOtpRequest;
 import com.chat.userAuthentication.request.LoginRequest;
 import com.chat.userAuthentication.request.UserCreation;
+import com.chat.userAuthentication.request.ValidateOtpRequest;
 import com.chat.userAuthentication.response.BaseResponse;
 import com.chat.userAuthentication.service.HomeManager;
 import jakarta.servlet.http.HttpServletRequest;
@@ -73,5 +74,19 @@ public class HomeController {
 
     }
 
+    @PostMapping(EndPointReferrer.VALIDATE_EMAIL_OTP)
+    public ResponseEntity<BaseResponse> validateEmailOtp(
+            @RequestBody @NotNull ValidateOtpRequest validateOtpRequest) {
+        try {
+            logger.debug("{} controller started",EndPointReferrer.VALIDATE_EMAIL_OTP);
+
+            return new ResponseEntity<>(homeManager.validateOtp(validateOtpRequest), HttpStatus.OK);
+
+        } catch (Exception e) {
+            logger.error("Exception occurred in request with cause - ");
+        }
+        return null;
+
+    }
 
 }

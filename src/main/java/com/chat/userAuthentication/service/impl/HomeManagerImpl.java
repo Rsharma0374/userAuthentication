@@ -11,9 +11,11 @@ import com.chat.userAuthentication.model.email.MailResponse;
 import com.chat.userAuthentication.request.EmailOtpRequest;
 import com.chat.userAuthentication.request.LoginRequest;
 import com.chat.userAuthentication.request.UserCreation;
+import com.chat.userAuthentication.request.ValidateOtpRequest;
 import com.chat.userAuthentication.response.BaseResponse;
 import com.chat.userAuthentication.response.Error;
 import com.chat.userAuthentication.response.email.EmailOtpResponse;
+import com.chat.userAuthentication.response.email.ValidateOtpResponse;
 import com.chat.userAuthentication.response.login.LoginResponse;
 import com.chat.userAuthentication.service.AuthTokenService;
 import com.chat.userAuthentication.service.HomeManager;
@@ -29,6 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StopWatch;
 
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 
@@ -85,7 +88,7 @@ public class HomeManagerImpl implements HomeManager {
         JwtResponse response = authTokenService.getToken(request);
         if (response != null) {
             loginResponse.setToken(response.getJwtToken());
-            loginResponse.setResponse(ResponseUtility.encryptThisString(encryptedPassword+username));
+            loginResponse.setServerSideValidation(ResponseUtility.encryptThisString(encryptedPassword+username));
         } else {
             throw new Exception("Token Not found");
         }
@@ -224,5 +227,63 @@ public class HomeManagerImpl implements HomeManager {
         mailRequest.setTo(emailOtpRequest.getEmailId());
         mailRequest.setSubject(emailConfiguration.getEmailSubject());
         mailRequest.setMessage(smsContent);
+    }
+
+    @Override
+    public BaseResponse validateOtp(ValidateOtpRequest validateOtpRequest) {
+        BaseResponse baseResponse = null;
+        ValidateOtpResponse validateOtpResponse = new ValidateOtpResponse();
+        try {
+            EmailReqResLog emailReqResLog = mongoService.getEmailReqResLog(validateOtpRequest);
+            if (null != emailReqResLog) {
+                if (checkOtpExpiration(emailReqResLog)) {
+                    if (emailReqResLog.getOtp().equalsIgnoreCase(validateOtpRequest.getOtp())) {
+                        validateOtpResponse.setSuccess(true);
+                        validateOtpResponse.setServerSideValidation(ResponseUtility.encryptThisString(emailReqResLog.getOtp() + validateOtpRequest.getOtpId()));
+                        validateOtpResponse.setMessage("Otp Validated Successfully");
+                    } else {
+                        validateOtpResponse.setSuccess(false);
+                        validateOtpResponse.setMessage("Incorrect Otp");
+                    }
+                } else {
+                    validateOtpResponse.setSuccess(false);
+                    validateOtpResponse.setMessage("Otp Expired.");
+                }
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, validateOtpResponse);
+            } else {
+                Error error = new Error();
+                error.setMessage(Constants.SOMETHING_WENT_WRONG);
+                error.setErrorType("TECHNICAL ERROR");
+                error.setErrorCode(HttpStatus.INTERNAL_SERVER_ERROR.toString());
+                validateOtpResponse.setErrors(new Error[]{error});
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, validateOtpResponse);
+            }
+
+        } catch (Exception ex) {
+            logger.error("Exception occurred while validation Otp with probable cause - ", ex);
+
+            Error error = new Error();
+            error.setMessage(ex.getMessage());
+            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+        }
+        return baseResponse;
+    }
+
+    private boolean checkOtpExpiration(EmailReqResLog emailReqResLog) {
+        logger.info("Checking if Otp is expired..");
+        Date currentDate = new Date();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(currentDate);
+
+        // Subtract 2 minutes
+        calendar.add(Calendar.MINUTE, -2);
+
+        // Get the updated Date
+        Date twoMinutesAgo = calendar.getTime();
+        logger.info(String.valueOf(twoMinutesAgo));
+        logger.info(emailReqResLog.getDateTime().toString());
+
+        return twoMinutesAgo.before(emailReqResLog.getDateTime());
+
     }
 }

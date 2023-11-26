@@ -4,6 +4,7 @@ import com.chat.userAuthentication.configuration.EmailConfiguration;
 import com.chat.userAuthentication.constant.Constants;
 import com.chat.userAuthentication.model.email.EmailReqResLog;
 import com.chat.userAuthentication.request.UserCreation;
+import com.chat.userAuthentication.request.ValidateOtpRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -124,5 +125,23 @@ public class MongoServiceImpl implements MongoService{
             throw new Exception(String.format("Error while save email Req Res Log", e.getMessage()));
         }
         return false;
+    }
+
+    @Override
+    public EmailReqResLog getEmailReqResLog(ValidateOtpRequest validateOtpRequest) {
+
+        try {
+            Query query = new Query();
+            query.addCriteria(Criteria.where("_id").is(validateOtpRequest.getOtpId()));
+
+            logger.info("Query is {}", query);
+
+            return mongoTemplate.findOne(query, EmailReqResLog.class);
+
+
+        } catch (Exception e) {
+            logger.error("Error for saveSmsServiceReqResLog ", e);
+            return null;
+        }
     }
 }
