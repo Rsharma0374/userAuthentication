@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.mongodb.gridfs.GridFsTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -158,6 +159,40 @@ public class MongoServiceImpl implements MongoService{
         } catch (Exception e) {
             logger.error("Exception occurred due to - ", e);
             return false;
+        }
+    }
+
+    @Override
+    public UserCreation getUserWithEmail(String email) {
+        logger.info("Get user with email method");
+
+        try {
+            Query query = new Query();
+            query.addCriteria(Criteria.where("emailId").is(email)
+                    .and("accountActive").is(true));
+
+            return mongoTemplate.findOne(query, UserCreation.class);
+        } catch (Exception e) {
+            logger.error("Exception occurred due to - ", e);
+            return null;
+        }
+    }
+
+    @Override
+    public void updatePassword(String emailId, String password) {
+        logger.info("Inside update Password method");
+
+        try {
+            Query query = new Query();
+            query.addCriteria(Criteria.where("emailId").is(emailId)
+                    .and("accountActive").is(true));
+
+            Update update = new Update();
+            update.set("password", password);
+
+            mongoTemplate.updateFirst(query, update, UserCreation.class);
+        } catch (Exception e) {
+            logger.error("Exception occurred due to - ", e);
         }
     }
 }

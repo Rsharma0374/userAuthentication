@@ -150,7 +150,7 @@ public class HomeManagerImpl implements HomeManager {
             }
             String otp = ResponseUtility.generateOtpAgainstLength(6);
 
-            getEmailTextByType(emailConfiguration, emailOtpRequest, mailRequest, otp);
+            getEmailTextByType(emailConfiguration, emailOtpRequest.getEmailId(), mailRequest, otp);
             settingEmailReqResLog(emailReqResLog, otp, mailRequest, emailOtpRequest);
 
 
@@ -213,21 +213,25 @@ public class HomeManagerImpl implements HomeManager {
         return hitCount >= otpMaxLimit;
     }
 
-    private void getEmailTextByType(EmailConfiguration emailConfiguration, EmailOtpRequest emailOtpRequest, MailRequest mailRequest, String otp) {
+    private void getEmailTextByType(EmailConfiguration emailConfiguration, String emailId, MailRequest mailRequest, String text) {
 
         String smsContent = null;
         String emailType = emailConfiguration.getEmailType();
         switch (emailType) {
             case "EMAIL_OTP_SMS": {
-                smsContent = emailConfiguration.getFormattedSMSText(otp);
+                smsContent = emailConfiguration.getFormattedSMSText(text);
             }
             break;
+
+            case Constants.RESET_PASSWORD: {
+                smsContent = emailConfiguration.getFormattedSMSText(text);
+            }
             default: {
                 // by default email content will be null
                 logger.error("no case match to form sms content for type {}", emailType);
             }
         }
-        mailRequest.setTo(emailOtpRequest.getEmailId());
+        mailRequest.setTo(emailId);
         mailRequest.setSubject(emailConfiguration.getEmailSubject());
         mailRequest.setMessage(smsContent);
     }
@@ -244,6 +248,7 @@ public class HomeManagerImpl implements HomeManager {
                         validateOtpResponse.setSuccess(true);
                         validateOtpResponse.setServerSideValidation(ResponseUtility.encryptThisString(emailReqResLog.getOtp() + validateOtpRequest.getOtpId()));
                         validateOtpResponse.setMessage("Otp Validated Successfully");
+                        createAndSendPasswordMail(emailReqResLog.getEmailId(), validateOtpRequest.getProductName());
                     } else {
                         validateOtpResponse.setSuccess(false);
                         validateOtpResponse.setMessage("Incorrect Otp");
@@ -270,6 +275,24 @@ public class HomeManagerImpl implements HomeManager {
             baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
         }
         return baseResponse;
+    }
+
+    private void createAndSendPasswordMail(String emailId, String productName) throws Exception {
+        UserCreation userCreation = mongoService.getUserWithEmail(emailId);
+        MailRequest mailRequest = new MailRequest();
+        MailResponse mailResponse = new MailResponse();
+
+        if (null != userCreation) {
+            String password = ResponseUtility.generateStringAgainstLength(10);
+            mongoService.updatePassword(emailId, password);
+
+            EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(Constants.RESET_PASSWORD, productName, false);
+            if (null != emailConfiguration) {
+                getEmailTextByType(emailConfiguration, emailId, mailRequest, password);
+                //To-do set EmailReqResLog
+                mailResponse = (MailResponse) TransportUtils.postJsonRequest(mailRequest, connectorEmailSendUrl, MailResponse.class);
+            }
+        }
     }
 
     private boolean checkOtpExpiration(EmailReqResLog emailReqResLog) {

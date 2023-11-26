@@ -86,6 +86,22 @@ public class ResponseUtility {
         return otp.toString();
     }
 
+
+    public static String generateStringAgainstLength(int length) {
+        // Using numeric values
+        String numbers = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+        // Using random method
+        Random rndm_method = new Random();
+
+        StringBuilder  string = new StringBuilder();
+
+        for (int i = 0; i < length; i++) {
+            string.append(numbers.charAt(rndm_method.nextInt(numbers.length())));
+        }
+        return string.toString();
+    }
+
     public static String ObjectToString(Object object) throws JsonProcessingException {
         // mapper.configure(MapperFeature.CAN_OVERRIDE_ACCESS_MODIFIERS,false);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

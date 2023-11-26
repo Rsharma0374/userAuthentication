@@ -22,4 +22,8 @@ public interface MongoService {
     EmailReqResLog getEmailReqResLog(ValidateOtpRequest validateOtpRequest);
 
     boolean checkExistenceWithEmail(String email);
+
+    UserCreation getUserWithEmail(String email);
+
+    void updatePassword(String emailId, String password);
 }
