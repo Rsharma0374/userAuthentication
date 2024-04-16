@@ -2,6 +2,7 @@ package com.chat.userAuthentication.service.impl;
 
 import com.chat.userAuthentication.configuration.EmailConfiguration;
 import com.chat.userAuthentication.constant.Constants;
+import com.chat.userAuthentication.constant.ProductConstants;
 import com.chat.userAuthentication.dao.MongoService;
 import com.chat.userAuthentication.model.JwtRequest;
 import com.chat.userAuthentication.model.JwtResponse;
@@ -67,6 +68,16 @@ public class HomeManagerImpl implements HomeManager {
             if (StringUtils.equalsIgnoreCase(encryptedPassword, loginRequest.getShaPassword())) {
                 loginResponse.setResponse("Access Granted");
                 settingToken(loginResponse, encryptedPassword, loginRequest.getUserName());
+                EmailOtpRequest emailOtpRequest = new EmailOtpRequest();
+                emailOtpRequest.setEmailType("EMAIL_OTP_SMS");
+                emailOtpRequest.setOtpRequired(true);
+                emailOtpRequest.setProductName(ProductConstants.PASSWORD_MANAGER);
+                emailOtpRequest.setEmailId(userCreation.getEmailId());
+                EmailOtpResponse emailOtpResponse = sendVerificationOtp(emailOtpRequest);
+                if (null != emailOtpResponse && StringUtils.isNoneBlank(emailOtpResponse.getOtp())) {
+                    loginResponse.setOtpToken(emailOtpResponse.getOtp());
+                }
+
                 return ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
             } else {
                 loginResponse.setResponse("Invalid Credentials");
@@ -78,6 +89,57 @@ public class HomeManagerImpl implements HomeManager {
             error.setMessage(ex.getMessage());
             logger.error("Exception occurred while login due to - ", ex);
             return ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+        }
+    }
+
+    private EmailOtpResponse sendVerificationOtp(EmailOtpRequest emailOtpRequest) throws Exception {
+        logger.info("Inside sendVerificationOtp method...");
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+
+        BaseResponse baseResponse = null;
+        MailRequest mailRequest = new MailRequest();
+        MailResponse mailResponse = new MailResponse();
+        EmailReqResLog emailReqResLog = new EmailReqResLog();
+        EmailOtpResponse emailOtpResponse = new EmailOtpResponse();
+        try {
+            EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(emailOtpRequest.getEmailType(), emailOtpRequest.getProductName(), emailOtpRequest.isOtpRequired());
+
+
+            //Check email flooding
+            if (!checkEmailFlooding(emailOtpRequest,emailConfiguration.getOtpMaxLimit())) {
+
+
+                String otp = ResponseUtility.generateOtpAgainstLength(6);
+
+                getEmailTextByType(emailConfiguration, emailOtpRequest.getEmailId(), mailRequest, otp);
+                settingEmailReqResLog(emailReqResLog, otp, mailRequest, emailOtpRequest);
+
+
+                mailResponse = (MailResponse) TransportUtils.postJsonRequest(mailRequest, connectorEmailSendUrl, MailResponse.class);
+
+                logger.info("Mail Response : {}", mailResponse);
+                if (mailResponse != null) {
+                    emailReqResLog.setMailResponse(mailResponse);
+                    if (mailResponse.getStatus().equalsIgnoreCase(Constants.SUCCESS)) {
+                        emailOtpResponse.setSuccess(true);
+                    }
+                }
+            } else {
+                logger.error("Limit exhause for email id {}", emailOtpRequest.getEmailId());
+            }
+
+        } catch (Exception ex) {
+            Error error = new Error();
+            error.setMessage(ex.getMessage());
+            logger.error("Exception occurred while sending otp due to - ", ex);
+            emailOtpResponse.setErrors(new Error[] {error});
+        } finally {
+            stopWatch.stop();
+            emailReqResLog.setApiTimeTaken(stopWatch.getLastTaskTimeMillis());
+            mongoService.saveEmailResResLog(emailReqResLog);
+            emailOtpResponse.setOtp(emailReqResLog.getId());
+            return emailOtpResponse;
         }
     }
 
@@ -237,7 +299,7 @@ public class HomeManagerImpl implements HomeManager {
     }
 
     @Override
-    public BaseResponse validateOtp(ValidateOtpRequest validateOtpRequest) {
+    public BaseResponse validateOtpAndResetPassword(ValidateOtpRequest validateOtpRequest) {
         BaseResponse baseResponse = null;
         ValidateOtpResponse validateOtpResponse = new ValidateOtpResponse();
         try {
@@ -311,5 +373,45 @@ public class HomeManagerImpl implements HomeManager {
 
         return twoMinutesAgo.before(emailReqResLog.getDateTime());
 
+    }
+
+    @Override
+    public BaseResponse validateOtp(ValidateOtpRequest validateOtpRequest) {
+        BaseResponse baseResponse = null;
+        ValidateOtpResponse validateOtpResponse = new ValidateOtpResponse();
+        try {
+            EmailReqResLog emailReqResLog = mongoService.getEmailReqResLog(validateOtpRequest);
+            if (null != emailReqResLog) {
+                if (checkOtpExpiration(emailReqResLog)) {
+                    if (emailReqResLog.getOtp().equalsIgnoreCase(validateOtpRequest.getOtp())) {
+                        validateOtpResponse.setSuccess(true);
+                        validateOtpResponse.setServerSideValidation(ResponseUtility.encryptThisString(emailReqResLog.getOtp() + validateOtpRequest.getOtpId()));
+                        validateOtpResponse.setMessage("Otp Validated Successfully");
+                    } else {
+                        validateOtpResponse.setSuccess(false);
+                        validateOtpResponse.setMessage("Incorrect Otp");
+                    }
+                } else {
+                    validateOtpResponse.setSuccess(false);
+                    validateOtpResponse.setMessage("Otp Expired.");
+                }
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, validateOtpResponse);
+            } else {
+                Error error = new Error();
+                error.setMessage(Constants.SOMETHING_WENT_WRONG);
+                error.setErrorType("TECHNICAL ERROR");
+                error.setErrorCode(HttpStatus.INTERNAL_SERVER_ERROR.toString());
+                validateOtpResponse.setErrors(new Error[]{error});
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, validateOtpResponse);
+            }
+
+        } catch (Exception ex) {
+            logger.error("Exception occurred while validation Otp with probable cause - ", ex);
+
+            Error error = new Error();
+            error.setMessage(ex.getMessage());
+            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+        }
+        return baseResponse;
     }
 }

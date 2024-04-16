@@ -80,6 +80,21 @@ public class HomeController {
         try {
             logger.debug("{} controller started",EndPointReferrer.VALIDATE_EMAIL_OTP);
 
+            return new ResponseEntity<>(homeManager.validateOtpAndResetPassword(validateOtpRequest), HttpStatus.OK);
+
+        } catch (Exception e) {
+            logger.error("Exception occurred in request with cause - ");
+        }
+        return null;
+
+    }
+
+    @PostMapping(EndPointReferrer.VALIDATE_VERIFICATION_OTP)
+    public ResponseEntity<BaseResponse> verifyOtp(
+            @RequestBody @NotNull ValidateOtpRequest validateOtpRequest) {
+        try {
+            logger.debug("{} controller started",EndPointReferrer.VALIDATE_VERIFICATION_OTP);
+
             return new ResponseEntity<>(homeManager.validateOtp(validateOtpRequest), HttpStatus.OK);
 
         } catch (Exception e) {

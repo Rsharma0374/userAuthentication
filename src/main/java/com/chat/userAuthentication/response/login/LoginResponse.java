@@ -13,6 +13,9 @@ public class LoginResponse {
     @JsonProperty("sServerSideValidation")
     private String serverSideValidation;
 
+    @JsonProperty("sOtpToken")
+    private String  otpToken;
+
     public String getResponse() {
         return response;
     }
@@ -35,5 +38,13 @@ public class LoginResponse {
 
     public void setServerSideValidation(String serverSideValidation) {
         this.serverSideValidation = serverSideValidation;
+    }
+
+    public String getOtpToken() {
+        return otpToken;
+    }
+
+    public void setOtpToken(String otpToken) {
+        this.otpToken = otpToken;
     }
 }

@@ -18,5 +18,7 @@ public interface HomeManager {
 
     BaseResponse sendForgotOtp(EmailOtpRequest emailOtpRequest) throws Exception;
 
+    BaseResponse validateOtpAndResetPassword(ValidateOtpRequest validateOtpRequest);
+
     BaseResponse validateOtp(ValidateOtpRequest validateOtpRequest);
 }

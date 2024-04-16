@@ -12,4 +12,6 @@ public class EndPointReferrer {
 
     public static final String  VALIDATE_EMAIL_OTP = "validate-email-otp";
 
+    public static final String  VALIDATE_VERIFICATION_OTP = "validate-verification-otp";
+
 }
