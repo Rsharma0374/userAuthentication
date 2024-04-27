@@ -13,10 +13,14 @@ import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
-import java.util.Random;
+import java.text.SimpleDateFormat;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class ResponseUtility {
 
@@ -111,5 +115,31 @@ public class ResponseUtility {
     public static <T> T StringToObject(String jsonString, Class<?> type) throws IOException {
         return (T)mapper.readValue(jsonString, type);
 
+    }
+
+    public static Object redisObject (String key, String token, long expirationTime, Object obj) {
+        Map<String, Object> redisClass = new HashMap<>();
+        redisClass.put("key", key);
+        redisClass.put("token", token);
+        redisClass.put("otherValue", obj);
+
+        // Get current time in milliseconds
+        long currentTimeMillis = System.currentTimeMillis();
+
+        // Add 1800 seconds (30 minutes) to the current time
+        long futureTimeMillis = currentTimeMillis + TimeUnit.SECONDS.toMillis(1800);
+
+        // Convert the future time to Date object
+        Date futureDate = new Date(futureTimeMillis);
+
+        // Define the date format
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+
+        // Format the future time string
+        String futureTimeString = dateFormat.format(futureDate);
+
+        redisClass.put("expireTime", futureTimeString);
+
+        return redisClass;
     }
 }

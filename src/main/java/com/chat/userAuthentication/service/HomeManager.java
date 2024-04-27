@@ -21,4 +21,8 @@ public interface HomeManager {
     BaseResponse validateOtpAndResetPassword(ValidateOtpRequest validateOtpRequest);
 
     BaseResponse validateOtp(ValidateOtpRequest validateOtpRequest);
+
+    BaseResponse getTokenByKey(String key);
+
+    BaseResponse clearTokenByKey(String key);
 }

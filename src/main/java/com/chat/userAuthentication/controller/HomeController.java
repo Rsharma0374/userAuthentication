@@ -14,7 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-//import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 @RestController
@@ -104,4 +104,13 @@ public class HomeController {
 
     }
 
+    @GetMapping(EndPointReferrer.GET_REDIS_CACHE)
+    public ResponseEntity<BaseResponse> getTokenByKey(@PathVariable("sKey") @NotNull @Valid String key) {
+        return new ResponseEntity<>(homeManager.getTokenByKey(key), HttpStatus.OK);
+    }
+
+    @GetMapping(EndPointReferrer.CLEAR_REDIS_CACHE)
+    public ResponseEntity<BaseResponse> clearTokenByKey(@PathVariable("sKey") @NotNull @Valid String key) {
+        return new ResponseEntity<>(homeManager.clearTokenByKey(key), HttpStatus.OK);
+    }
 }

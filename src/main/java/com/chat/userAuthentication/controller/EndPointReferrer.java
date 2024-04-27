@@ -14,4 +14,8 @@ public class EndPointReferrer {
 
     public static final String  VALIDATE_VERIFICATION_OTP = "validate-verification-otp";
 
+    public static final String  CLEAR_REDIS_CACHE = "clear-redis-cache/{sKey}";
+
+    public static final String  GET_REDIS_CACHE = "get-redis-cache-by-key/{sKey}";
+
 }

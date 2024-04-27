@@ -20,8 +20,10 @@ import com.chat.userAuthentication.response.email.ValidateOtpResponse;
 import com.chat.userAuthentication.response.login.LoginResponse;
 import com.chat.userAuthentication.service.AuthTokenService;
 import com.chat.userAuthentication.service.HomeManager;
+import com.chat.userAuthentication.service.redis.RedisService;
 import com.chat.userAuthentication.service.utility.TransportUtils;
 import com.chat.userAuthentication.utility.ResponseUtility;
+import com.chat.userAuthentication.utility.TokenGenerator;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -35,6 +37,8 @@ import org.springframework.util.StopWatch;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class HomeManagerImpl implements HomeManager {
@@ -49,6 +53,9 @@ public class HomeManagerImpl implements HomeManager {
 
     @Value("${connector.email.send.api}")
     private String connectorEmailSendUrl;
+
+    @Autowired
+    private RedisService redisService;
 
     @Override
     public BaseResponse login(LoginRequest loginRequest, HttpServletRequest httpRequest) throws Exception {
@@ -74,7 +81,7 @@ public class HomeManagerImpl implements HomeManager {
                 emailOtpRequest.setProductName(ProductConstants.PASSWORD_MANAGER);
                 emailOtpRequest.setEmailId(userCreation.getEmailId());
                 EmailOtpResponse emailOtpResponse = sendVerificationOtp(emailOtpRequest);
-                if (null != emailOtpResponse && StringUtils.isNoneBlank(emailOtpResponse.getOtp())) {
+                if (StringUtils.isNoneBlank(emailOtpResponse.getOtp())) {
                     loginResponse.setOtpToken(emailOtpResponse.getOtp());
                 }
 
@@ -144,16 +151,22 @@ public class HomeManagerImpl implements HomeManager {
     }
 
     private void settingToken(LoginResponse loginResponse, String encryptedPassword, String username) throws Exception {
-        JwtRequest request = new JwtRequest();
-        request.setEmail("RAHUL");
-        request.setPassword("RAHUL");
-        JwtResponse response = authTokenService.getToken(request);
-        if (response != null) {
-            loginResponse.setToken(response.getJwtToken());
-            loginResponse.setServerSideValidation(ResponseUtility.encryptThisString(encryptedPassword+username));
-        } else {
-            throw new Exception("Token Not found");
+
+        String token = TokenGenerator.generateToken(username);
+
+        loginResponse.setToken(token);
+        //setToken in redis
+        if (null == redisService) {
+            redisService = new RedisService();
         }
+        long expiryTime = 1800;
+        Object obj = ResponseUtility.redisObject(username, token, expiryTime, null);
+        //clear any existing key (One session one login)
+        redisService.clearKeyFromRedis(username);
+        //add the new key
+        redisService.setValueInRedisWithExpiration(username, obj, expiryTime, TimeUnit.SECONDS);
+        loginResponse.setServerSideValidation(ResponseUtility.encryptThisString(encryptedPassword + username));
+
     }
 
     public BaseResponse createUser(UserCreation userCreation) {
@@ -414,4 +427,47 @@ public class HomeManagerImpl implements HomeManager {
         }
         return baseResponse;
     }
+
+    @Override
+    public BaseResponse getTokenByKey(String key) {
+        BaseResponse baseResponse = null;
+        try {
+            if (null != redisService) {
+                Object token = redisService.getValueFromRedis(key);
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, token);
+
+            } else  {
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.NO_CONTENT, "No Token Found");
+            }
+
+        } catch (Exception e) {
+            logger.error("Exception occurred while getting key with probable cause ", e);
+            Error error = new Error();
+            error.setMessage(e.getMessage());
+            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+        }
+        return baseResponse;
+    }
+
+    @Override
+    public BaseResponse clearTokenByKey(String key) {
+        BaseResponse baseResponse = null;
+        try {
+            if (null != redisService) {
+                redisService.clearKeyFromRedis(key);
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, "key clear successful.");
+
+            } else  {
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.NO_CONTENT, "No Token Found");
+            }
+
+        } catch (Exception e) {
+            logger.error("Exception occurred while getting key with probable cause ", e);
+            Error error = new Error();
+            error.setMessage(e.getMessage());
+            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+        }
+        return baseResponse;
+    }
+
 }
