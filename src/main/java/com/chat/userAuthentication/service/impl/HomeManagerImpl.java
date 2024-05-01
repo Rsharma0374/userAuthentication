@@ -4,8 +4,6 @@ import com.chat.userAuthentication.configuration.EmailConfiguration;
 import com.chat.userAuthentication.constant.Constants;
 import com.chat.userAuthentication.constant.ProductConstants;
 import com.chat.userAuthentication.dao.MongoService;
-import com.chat.userAuthentication.model.JwtRequest;
-import com.chat.userAuthentication.model.JwtResponse;
 import com.chat.userAuthentication.model.email.EmailReqResLog;
 import com.chat.userAuthentication.model.email.MailRequest;
 import com.chat.userAuthentication.model.email.MailResponse;
@@ -57,6 +55,19 @@ public class HomeManagerImpl implements HomeManager {
     @Autowired
     private RedisService redisService;
 
+    /**
+     * The `login` function in Java handles user authentication by checking the password with SHA encryption and generating
+     * an OTP for verification.
+     *
+     * @param loginRequest The `loginRequest` parameter in the `login` method contains information required for user
+     * authentication, such as the username, password, and SHA-encrypted password. It is used to validate the user's
+     * credentials during the login process. The method checks if the provided username exists in the system and then
+     * compares
+     * @param httpRequest The `httpRequest` parameter in the `login` method is of type `HttpServletRequest`. This parameter
+     * is used to access information about the HTTP request that triggered the login operation. It can provide details such
+     * as request headers, parameters, and other information related to the incoming HTTP request. This information can be
+     * @return The method `login` returns a `BaseResponse` object.
+     */
     @Override
     public BaseResponse login(LoginRequest loginRequest, HttpServletRequest httpRequest) throws Exception {
         logger.info("Inside login request");
@@ -99,6 +110,14 @@ public class HomeManagerImpl implements HomeManager {
         }
     }
 
+    /**
+     * The `sendVerificationOtp` method sends a verification OTP via email and logs the response and any errors
+     * encountered.
+     *
+     * @param emailOtpRequest The `sendVerificationOtp` method you provided seems to be responsible for sending a
+     * verification OTP via email. Here's a breakdown of the key steps in the method:
+     * @return The method `sendVerificationOtp` is returning an `EmailOtpResponse` object.
+     */
     private EmailOtpResponse sendVerificationOtp(EmailOtpRequest emailOtpRequest) throws Exception {
         logger.info("Inside sendVerificationOtp method...");
         StopWatch stopWatch = new StopWatch();
@@ -150,6 +169,18 @@ public class HomeManagerImpl implements HomeManager {
         }
     }
 
+    /**
+     * This function generates a token, sets it in a login response object, stores it in Redis with an expiry time, and
+     * performs server-side validation.
+     *
+     * @param loginResponse The `loginResponse` parameter is an object of type `LoginResponse` which contains information
+     * related to the login response such as user details, authentication status, and possibly a token.
+     * @param encryptedPassword The `settingToken` method is responsible for generating a token, setting it in the
+     * `loginResponse`, storing it in Redis with an expiry time, and performing server-side validation.
+     * @param username The `username` parameter in the `settingToken` method is used to generate a token, set the token in
+     * the `loginResponse`, store the token in Redis along with some additional information, clear any existing key
+     * associated with the username from Redis, and set a server-side validation in the `login
+     */
     private void settingToken(LoginResponse loginResponse, String encryptedPassword, String username) throws Exception {
 
         String token = TokenGenerator.generateToken(username);
@@ -169,6 +200,15 @@ public class HomeManagerImpl implements HomeManager {
 
     }
 
+    /**
+     * The function creates a new user by checking for existing user, saving user data, and handling exceptions.
+     *
+     * @param userCreation The `createUser` method takes a `UserCreation` object as a parameter. This object likely
+     * contains information required to create a new user, such as username, password, email, etc. The method first checks
+     * if the `userCreation` object is null and returns a bad request response if it
+     * @return The `createUser` method returns a `BaseResponse` object. The content of the response depends on the logic
+     * within the method:
+     */
     public BaseResponse createUser(UserCreation userCreation) {
         logger.info("Inside Create user method");
 
@@ -197,6 +237,13 @@ public class HomeManagerImpl implements HomeManager {
 
     }
 
+    /**
+     * The `sendForgotOtp` method sends an OTP via email, logs the request and response, and handles errors appropriately.
+     *
+     * @param emailOtpRequest The `sendForgotOtp` method is responsible for sending a one-time password (OTP) to a user's
+     * email address for the purpose of password recovery. Let me break down the key steps in the method:
+     * @return The method `sendForgotOtp` is returning a `BaseResponse` object.
+     */
     @Override
     public BaseResponse sendForgotOtp(EmailOtpRequest emailOtpRequest) throws Exception {
         logger.info("Inside sendOtp method...");
@@ -253,6 +300,17 @@ public class HomeManagerImpl implements HomeManager {
         return ResponseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
     }
 
+    /**
+     * The function `settingEmailReqResLog` sets various properties of an `EmailReqResLog` object based on input
+     * parameters.
+     *
+     * Args:
+     *   emailReqResLog (EmailReqResLog): `EmailReqResLog` object that stores email request and response logs.
+     *   otp (String): A string representing the one-time password (OTP) generated for the email verification process.
+     *   mailRequest (MailRequest): MailRequest is an object that contains information about an email request, such as the
+     * sender, recipient, subject, and body of the email.
+     *   emailOtpRequest (EmailOtpRequest): The method `settingEmailReqResLog` takes in four parameters:
+     */
     private void settingEmailReqResLog(EmailReqResLog emailReqResLog, String otp, MailRequest mailRequest, EmailOtpRequest emailOtpRequest) {
         emailReqResLog.setOtp(otp);
         emailReqResLog.setEmailId(emailOtpRequest.getEmailId());
@@ -261,6 +319,19 @@ public class HomeManagerImpl implements HomeManager {
         emailReqResLog.setEmailType(emailOtpRequest.getEmailType());
     }
 
+    /**
+     * The function `limitExhausted` generates a response indicating that the OTP limit has been reached for a specific
+     * email ID.
+     *
+     * Args:
+     *   emailId (String): The `limitExhausted` method is used to create a response when the OTP limit is reached for a
+     * specific email ID. It logs a debug message, creates an `EmailOtpResponse` object, sets an error message indicating
+     * that the OTP limit is reached, and returns a response with the
+     *
+     * Returns:
+     *   A BaseResponse object is being returned with an EmailOtpResponse object containing an error message indicating
+     * that the OTP limit has been reached.
+     */
     private BaseResponse limitExhausted(String emailId) {
 
         logger.debug("SMS LIMIT_EXHAUSTED called for emailId - {}", emailId);
@@ -277,6 +348,21 @@ public class HomeManagerImpl implements HomeManager {
         return ResponseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
     }
 
+    /**
+     * The function `checkEmailFlooding` checks if the number of email triggers for a specific email ID, product name, and
+     * email type exceeds a specified limit.
+     *
+     * Args:
+     *   emailOtpRequest (EmailOtpRequest): The `emailOtpRequest` parameter is an object that contains information about an
+     * email OTP request. It typically includes the email ID, product name, and email type associated with the request.
+     *   otpMaxLimit (int): The `otpMaxLimit` parameter is an integer value that represents the maximum number of times an
+     * OTP (One-Time Password) can be sent to a specific email address within a certain time period. The
+     * `checkEmailFlooding` method checks if the number of OTP requests sent to a particular email address
+     *
+     * Returns:
+     *   The method is returning a boolean value based on whether the hit count for the given email, product name, and
+     * email type is greater than or equal to the specified OTP max limit.
+     */
     private boolean checkEmailFlooding(EmailOtpRequest emailOtpRequest, int otpMaxLimit) {
 
         logger.debug("Inside checking Email Flooding");
@@ -288,6 +374,20 @@ public class HomeManagerImpl implements HomeManager {
         return hitCount >= otpMaxLimit;
     }
 
+    /**
+     * The function `getEmailTextByType` takes in email configuration, email ID, mail request, and text to determine and
+     * set the SMS content based on the email type.
+     *
+     * Args:
+     *   emailConfiguration (EmailConfiguration): EmailConfiguration object containing email configuration details such as
+     * email type, email subject, and methods to format SMS text.
+     *   emailId (String): The `emailId` parameter is a `String` representing the email address to which the email will be
+     * sent.
+     *   mailRequest (MailRequest): The method `getEmailTextByType` takes in several parameters:
+     *   text (String): The `text` parameter in the `getEmailTextByType` method is the content that needs to be formatted
+     * for the email or SMS message. It is passed to the `emailConfiguration.getFormattedSMSText(text)` method to get the
+     * formatted SMS content based on the email type specified in the `
+     */
     private void getEmailTextByType(EmailConfiguration emailConfiguration, String emailId, MailRequest mailRequest, String text) {
 
         String smsContent = null;
@@ -311,6 +411,15 @@ public class HomeManagerImpl implements HomeManager {
         mailRequest.setMessage(smsContent);
     }
 
+    /**
+     * This Java function validates an OTP and resets a password, handling various scenarios such as expired OTP or
+     * incorrect input.
+     *
+     * @param validateOtpRequest The `validateOtpAndResetPassword` method takes a `ValidateOtpRequest` object as a
+     * parameter. This object likely contains information required to validate an OTP (One Time Password) and reset a
+     * password. The method performs the following steps:
+     * @return The method `validateOtpAndResetPassword` returns a `BaseResponse` object.
+     */
     @Override
     public BaseResponse validateOtpAndResetPassword(ValidateOtpRequest validateOtpRequest) {
         BaseResponse baseResponse = null;
@@ -352,6 +461,15 @@ public class HomeManagerImpl implements HomeManager {
         return baseResponse;
     }
 
+    /**
+     * The `createAndSendPasswordMail` function generates a new password, updates it in the database, retrieves email
+     * configuration settings, and sends a password reset email to the user if the user exists.
+     *
+     * Args:
+     *   emailId (String): The `emailId` parameter in the `createAndSendPasswordMail` method is the email address of the
+     * user for whom a password reset email needs to be sent.
+     *   productName (String): productName: The name of the product for which the password reset email is being sent.
+     */
     private void createAndSendPasswordMail(String emailId, String productName) throws Exception {
         UserCreation userCreation = mongoService.getUserWithEmail(emailId);
         MailRequest mailRequest = new MailRequest();
@@ -370,6 +488,21 @@ public class HomeManagerImpl implements HomeManager {
         }
     }
 
+    /**
+     * The function `checkOtpExpiration` checks if an OTP (One-Time Password) has expired by comparing the current time
+     * with a timestamp from an email request/response log.
+     *
+     * Args:
+     *   emailReqResLog (EmailReqResLog): The `emailReqResLog` parameter seems to be an object of type `EmailReqResLog`
+     * which contains information related to email request and response logs. The method `checkOtpExpiration` is checking
+     * if the OTP (One-Time Password) associated with this log has expired by comparing the OTP
+     *
+     * Returns:
+     *   The method `checkOtpExpiration` is returning a boolean value. It checks if the OTP (One Time Password) stored in
+     * the `EmailReqResLog` object is expired by comparing the date and time stored in the object with the date and time
+     * two minutes ago. If the date and time two minutes ago is before the date and time stored in the `EmailReqResLog`
+     * object,
+     */
     private boolean checkOtpExpiration(EmailReqResLog emailReqResLog) {
         logger.info("Checking if Otp is expired..");
         Date currentDate = new Date();
@@ -388,6 +521,14 @@ public class HomeManagerImpl implements HomeManager {
 
     }
 
+    /**
+     * The function `validateOtp` validates an OTP (One-Time Password) provided in a request and generates a response based
+     * on the validation result.
+     *
+     * @param validateOtpRequest The `validateOtp` method you provided is used to validate an OTP (One-Time Password) based
+     * on the `ValidateOtpRequest` input parameter. The method performs the following steps:
+     * @return The method `validateOtp` returns a `BaseResponse` object.
+     */
     @Override
     public BaseResponse validateOtp(ValidateOtpRequest validateOtpRequest) {
         BaseResponse baseResponse = null;
@@ -428,6 +569,14 @@ public class HomeManagerImpl implements HomeManager {
         return baseResponse;
     }
 
+    /**
+     * This Java function retrieves a token from Redis based on a given key and returns a corresponding response.
+     *
+     * @param key The `key` parameter in the `getTokenByKey` method is used to retrieve a token from a Redis service based
+     * on the provided key. The method attempts to fetch the token from Redis using the `redisService` and constructs a
+     * `BaseResponse` object accordingly. If the `redisService` is
+     * @return The method `getTokenByKey` returns a `BaseResponse` object.
+     */
     @Override
     public BaseResponse getTokenByKey(String key) {
         BaseResponse baseResponse = null;
@@ -449,6 +598,14 @@ public class HomeManagerImpl implements HomeManager {
         return baseResponse;
     }
 
+    /**
+     * The function `clearTokenByKey` clears a key from Redis and returns a response indicating the success or failure of
+     * the operation.
+     *
+     * @param key The `clearTokenByKey` method is used to clear a token from Redis based on the provided key. The `key`
+     * parameter is the identifier for the token that needs to be cleared from the Redis cache.
+     * @return The method `clearTokenByKey` returns a `BaseResponse` object.
+     */
     @Override
     public BaseResponse clearTokenByKey(String key) {
         BaseResponse baseResponse = null;
