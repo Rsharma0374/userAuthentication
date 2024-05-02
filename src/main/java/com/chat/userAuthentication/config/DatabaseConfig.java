@@ -1,7 +1,7 @@
 package com.chat.userAuthentication.config;
 
-import com.mongodb.client.MongoClient;
-import org.springframework.beans.factory.annotation.Value;
+import com.chat.userAuthentication.utility.ResponseUtility;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
@@ -12,13 +12,18 @@ import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
 import org.springframework.data.mongodb.core.convert.DbRefResolver;
 import org.springframework.data.mongodb.core.convert.DefaultDbRefResolver;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
-//import org.springframework.data.mongodb.core.convert.MongoMappingContext;
 
 @Configuration
 public class DatabaseConfig {
 
-    @Value("${spring.data.mongodb.uri}")
-    private String mongoUri;
+    private static String mongoUri = "";
+    private static final String MONGO_URI_PATH = "/opt/configs/mongo.properties";
+
+    static {
+        if (StringUtils.isBlank(mongoUri)) {
+            mongoUri = ResponseUtility.fetchMongoUri(MONGO_URI_PATH);
+        }
+    }
 
     @Bean
     public MongoDatabaseFactory mongoDbFactory() {

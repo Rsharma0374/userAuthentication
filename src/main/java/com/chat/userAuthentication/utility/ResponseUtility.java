@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.Key;
@@ -141,5 +142,17 @@ public class ResponseUtility {
         redisClass.put("expireTime", futureTimeString);
 
         return redisClass;
+    }
+
+    public static String fetchMongoUri(String mongoUriPath) {
+        Properties properties = new Properties();
+        String mongoUri = "";
+        try {
+            properties.load(new FileInputStream(mongoUriPath));
+            mongoUri = properties.getProperty("MONGO_URI");
+        } catch (IOException e) {
+            logger.error("Exception occurred while getting cloudinary config with probable cause - ", e);
+        }
+        return mongoUri;
     }
 }
