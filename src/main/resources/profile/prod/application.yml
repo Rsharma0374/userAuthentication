@@ -1,0 +1,22 @@
+# Server configuration
+# Uncomment and set the context path if needed
+# server:
+#   servlet:
+#     context-path: /your-context-path
+server:
+  port: 10001
+  address: 0.0.0.0
+
+# Logging configuration
+log:
+  collectionName: UserAuthLog
+
+# Security settings
+security:
+  ignored: /**/public
+
+# Email connector API
+connector:
+  email:
+    send:
+      api: https://connector.r-sharma.in/email-connector/send-mail
