@@ -8,6 +8,9 @@ public class EmailOtpResponse {
     @JsonProperty("bSuccess")
     private boolean success;
 
+    @JsonProperty("sUserToken")
+    private String userToken;
+
     @JsonProperty("aErrors")
     private Error[] errors;
 
@@ -20,6 +23,14 @@ public class EmailOtpResponse {
 
     public void setSuccess(boolean success) {
         this.success = success;
+    }
+
+    public String getUserToken() {
+        return userToken;
+    }
+
+    public void setUserToken(String userToken) {
+        this.userToken = userToken;
     }
 
     public Error[] getErrors() {

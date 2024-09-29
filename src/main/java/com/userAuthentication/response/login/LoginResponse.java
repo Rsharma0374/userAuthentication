@@ -16,6 +16,12 @@ public class LoginResponse {
     @JsonProperty("sOtpToken")
     private String  otpToken;
 
+    @JsonProperty("sStatus")
+    private String status;
+
+    @JsonProperty("sEncryptedValue")
+    private String encryptedValue;
+
     public String getResponse() {
         return response;
     }
@@ -46,5 +52,21 @@ public class LoginResponse {
 
     public void setOtpToken(String otpToken) {
         this.otpToken = otpToken;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getEncryptedValue() {
+        return encryptedValue;
+    }
+
+    public void setEncryptedValue(String encryptedValue) {
+        this.encryptedValue = encryptedValue;
     }
 }

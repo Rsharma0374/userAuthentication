@@ -181,4 +181,31 @@ public class MongoServiceImpl implements MongoService{
             logger.error("Exception occurred due to - ", e);
         }
     }
+
+    @Override
+    public EmailReqResLog getEmailReqResLogByUserToken(String userToken) {
+
+        try {
+            Query query = new Query();
+            query.addCriteria(Criteria.where("userToken").is(userToken));
+
+            logger.info("Query is {}", query);
+
+            return mongoTemplate.findOne(query, EmailReqResLog.class);
+
+
+        } catch (Exception e) {
+            logger.error("Error for saveSmsServiceReqResLog ", e);
+            return null;
+        }
+    }
+
+    @Override
+    public void saveEmailOtpReqRes(EmailReqResLog emailReqResLog) {
+        try {
+            mongoTemplate.save(emailReqResLog);
+        } catch (Exception e) {
+            logger.error("exception occur during save emailReqResLog for ackid {} with probable cause- ", emailReqResLog.getId(), e);
+        }
+    }
 }

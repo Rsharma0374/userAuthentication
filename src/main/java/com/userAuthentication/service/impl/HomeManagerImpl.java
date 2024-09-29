@@ -13,12 +13,14 @@ import com.userAuthentication.model.user.UserRegistry;
 import com.userAuthentication.request.EmailOtpRequest;
 import com.userAuthentication.request.LoginRequest;
 import com.userAuthentication.request.UserCreation;
+import com.userAuthentication.request.ValidateOtpRequest;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.response.Error;
 import com.userAuthentication.response.email.EmailOtpResponse;
 import com.userAuthentication.response.login.LoginResponse;
 import com.userAuthentication.security.EncryptDecryptService;
 import com.userAuthentication.service.HomeManager;
+import com.userAuthentication.service.JWTService;
 import com.userAuthentication.service.redis.RedisService;
 import com.userAuthentication.service.utility.TransportUtils;
 import com.userAuthentication.utility.ResponseUtility;
@@ -32,8 +34,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.Date;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -49,6 +50,9 @@ public class HomeManagerImpl implements HomeManager {
 
     @Autowired
     private RedisService redisService;
+
+    @Autowired
+    private JWTService jwtService;
 
     /**
      * The `login` function in Java handles user authentication by checking the password with SHA encryption and generating
@@ -112,6 +116,7 @@ public class HomeManagerImpl implements HomeManager {
                 if (emailOtpResponse.isSuccess()) {
                     loginResponse.setOtpToken(emailOtpResponse.getOtp());
                     loginResponse.setResponse("Access Granted");
+                    loginResponse.setToken(emailOtpResponse.getUserToken());
                 } else {
                     loginResponse.setResponse("Sending OTP failed. Please contact system administrator.");
                 }
@@ -278,7 +283,7 @@ public class HomeManagerImpl implements HomeManager {
                 if (mailResponse.getStatus().equalsIgnoreCase(Constants.SUCCESS)) {
                     emailOtpResponse.setSuccess(true);
                     emailOtpResponse.setOtp(emailReqResLog.getId());
-
+                    emailReqResLog.setUserToken(String.valueOf(UUID.randomUUID()));
                 } else {
                     error.setMessage("Sms sending failed, try again");
                     error.setErrorCode(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()));
@@ -297,8 +302,68 @@ public class HomeManagerImpl implements HomeManager {
         } finally {
             mongoService.saveEmailResResLog(emailReqResLog);
             emailOtpResponse.setOtp(emailReqResLog.getId());
+            emailOtpResponse.setUserToken(emailReqResLog.getUserToken());
         }
         return baseResponse;
+    }
+
+    @Override
+    public BaseResponse validate2faOtp(ValidateOtpRequest validateOtpRequest) {
+        logger.info("Inside validate 2Fa Otp");
+        int attemptCount = 0;
+        boolean isAttemptValid = false;
+        LoginResponse loginResponse = new LoginResponse();
+        EmailReqResLog emailReqResLog = mongoService.getEmailReqResLogByUserToken(validateOtpRequest.getOtpId());
+        try {
+            if (null != emailReqResLog && StringUtils.equalsIgnoreCase(emailReqResLog.getOtp(), validateOtpRequest.getOtp())) {
+                isAttemptValid = true;
+                attemptCount = emailReqResLog.getTotalAttempt() + 1;
+
+                if (attemptCount <= 3) {
+
+                    long actualTime = emailReqResLog.getDateTime().getTime();
+                    long currentTime = System.currentTimeMillis();
+                    long difference = Math.abs(currentTime - actualTime);
+
+                    if (difference < 2 * 60 * 1000) {
+                        loginResponse.setStatus("SUCCESS");
+                        loginResponse.setResponse("One time password has been verified successfully .");
+                        loginResponse.setEncryptedValue(ResponseUtility.encryptThisString(validateOtpRequest.getOtp() + validateOtpRequest.getOtpId()));
+                        loginResponse.setToken(jwtService.generateToken(validateOtpRequest.getUserName()));
+
+                    } else {
+                        loginResponse.setResponse("One time passord has been expired . Please request new one time password.");
+                        loginResponse.setStatus("FAILED");
+                    }
+
+                } else {
+                    loginResponse.setResponse("Maximum OTP limit reached, please request new OTP");
+                    loginResponse.setStatus("FAILED");
+                }
+
+            } else {
+                Collection<Error> errors = new ArrayList<>();
+                errors.add(Error.builder()
+                        .message("OTP verification failed")
+                        .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
+                        .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                        .level(Error.SEVERITY.LOW.name())
+                        .build());
+                return ResponseUtility.getBaseResponse(HttpStatus.FAILED_DEPENDENCY, errors);
+            }
+
+        } catch (Exception e) {
+            logger.error("Exception occurred while validating 2FA otp with probable cause - ", e);
+            Error error = new Error();
+            error.setMessage(e.getMessage());
+            return ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+        } finally {
+            if (isAttemptValid) {
+                emailReqResLog.setTotalAttempt(attemptCount);
+                mongoService.saveEmailOtpReqRes(emailReqResLog);
+            }
+        }
+        return ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
     }
 
     private boolean createAndSaveUserDetails(UserCreation userCreation) {

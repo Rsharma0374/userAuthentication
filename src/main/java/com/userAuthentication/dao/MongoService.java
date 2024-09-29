@@ -25,4 +25,9 @@ public interface MongoService {
     boolean saveUserRegistry(UserRegistry userRegistry);
 
     UserRegistry getUserByUsername(String userName);
+
+    EmailReqResLog getEmailReqResLogByUserToken(String userToken);
+
+    void saveEmailOtpReqRes(EmailReqResLog emailReqResLog);
+
 }

@@ -13,6 +13,9 @@ public class ValidateOtpRequest {
     @JsonProperty("sProductName")
     private String productName;
 
+    @JsonProperty("sUserName")
+    private String userName;
+
     public String getOtp() {
         return otp;
     }
@@ -37,12 +40,21 @@ public class ValidateOtpRequest {
         this.productName = productName;
     }
 
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
     @Override
     public String toString() {
         return "ValidateOtpRequest{" +
                 "otp='" + otp + '\'' +
                 ", otpId='" + otpId + '\'' +
                 ", productName='" + productName + '\'' +
+                ", userName='" + userName + '\'' +
                 '}';
     }
 }

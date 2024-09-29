@@ -37,6 +37,13 @@ public class EmailReqResLog {
     @JsonProperty("sOtp")
     private String otp;
 
+    @JsonProperty("sUserToken")
+    private String userToken;
+
+    // its total validation attempt of otp
+    @JsonProperty("iTotalAttempt")
+    private int totalAttempt;
+
     public String getId() {
         return id;
     }
@@ -109,9 +116,26 @@ public class EmailReqResLog {
         this.otp = otp;
     }
 
+    public String getUserToken() {
+        return userToken;
+    }
+
+    public void setUserToken(String userToken) {
+        this.userToken = userToken;
+    }
+
+    public int getTotalAttempt() {
+        return totalAttempt;
+    }
+
+    public void setTotalAttempt(int totalAttempt) {
+        this.totalAttempt = totalAttempt;
+    }
+
     @Override
     public String toString() {
         return "EmailReqResLog{" +
+                "id='" + id + '\'' +
                 ", dateTime=" + dateTime +
                 ", emailId='" + emailId + '\'' +
                 ", mailTo='" + mailTo + '\'' +
@@ -120,6 +144,8 @@ public class EmailReqResLog {
                 ", mailResponseStatus='" + mailResponseStatus + '\'' +
                 ", emailType='" + emailType + '\'' +
                 ", otp='" + otp + '\'' +
+                ", userToken='" + userToken + '\'' +
+                ", totalAttempt=" + totalAttempt +
                 '}';
     }
 }

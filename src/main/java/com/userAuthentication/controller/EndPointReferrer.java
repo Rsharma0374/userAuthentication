@@ -6,6 +6,8 @@ public class EndPointReferrer {
 
     public static final String CREATE_USER = "create-user";
 
+    public static final String VALIDATE_2FA_OTP = "validate-tfa-otp";
+
     public static final String GET_TOKEN = "get-token";
 
     public static final String SEND_EMAIL_OTP = "send-email-otp";
