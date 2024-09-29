@@ -111,6 +111,7 @@ public class HomeManagerImpl implements HomeManager {
             emailOtpRequest.setProductName("PASSWORD_MANAGER");
             emailOtpRequest.setEmailType("2FA_OTP");
             BaseResponse baseResponse = sendEmailOtp(emailOtpRequest);
+            logger.warn("BaseResponse received is {}", baseResponse);
             if (null != baseResponse && null != baseResponse.getPayload() && null != baseResponse.getPayload().getT()) {
                 EmailOtpResponse emailOtpResponse = (EmailOtpResponse) baseResponse.getPayload().getT();
                 if (emailOtpResponse.isSuccess()) {

@@ -2,7 +2,9 @@ package com.userAuthentication.response.email;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.userAuthentication.response.Error;
+import lombok.ToString;
 
+@ToString
 public class EmailOtpResponse {
 
     @JsonProperty("bSuccess")
