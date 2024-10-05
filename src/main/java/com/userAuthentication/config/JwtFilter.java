@@ -2,6 +2,7 @@ package com.userAuthentication.config;
 
 import com.userAuthentication.service.JWTService;
 import com.userAuthentication.service.MyUserDetailsService;
+import com.userAuthentication.service.redis.RedisService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,6 +27,9 @@ public class JwtFilter extends OncePerRequestFilter {
     @Autowired
     ApplicationContext context;
 
+    @Autowired
+    private RedisService redisService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
@@ -33,7 +37,8 @@ public class JwtFilter extends OncePerRequestFilter {
         String username = null;
 
         if (authHeader != null  && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7);
+            String opaqueToken = authHeader.substring(7);
+            token = (String) redisService.getValueFromRedis(opaqueToken);
             username = jwtService.extractUserName(token);
         }
 

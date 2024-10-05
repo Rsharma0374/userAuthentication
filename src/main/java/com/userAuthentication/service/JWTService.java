@@ -1,9 +1,15 @@
 package com.userAuthentication.service;
 
+import com.userAuthentication.constant.FieldSeparator;
+import com.userAuthentication.constant.ProductConstants;
+import com.userAuthentication.service.redis.RedisService;
+import com.userAuthentication.utility.ResponseUtility;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -14,11 +20,15 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.UUID;
 
 @Service
 public class JWTService {
 
+    @Autowired
+    private RedisService redisService;
 
     private String secretKey = "";
 
@@ -34,15 +44,20 @@ public class JWTService {
 
     public String generateToken(String userName) {
         Map<String, Object> claims = new HashMap<>();
-        return Jwts.builder()
+        Date expiryTime = new Date(System.currentTimeMillis() + 60 * 60 * 30);
+        String jwtToken = Jwts.builder()
                 .claims()
                 .add(claims)
                 .subject(userName)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 60 * 60 * 30))
+                .expiration(expiryTime)
                 .and()
                 .signWith(getKey())
                 .compact();
+        String opaqueToken = UUID.randomUUID().toString().replace("-", " ");
+
+        redisService.setValueInRedisWithExpiration(opaqueToken, jwtToken, (60 * 60 * 30), TimeUnit.SECONDS);
+        return opaqueToken;
     }
 
     private SecretKey getKey() {
