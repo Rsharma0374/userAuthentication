@@ -2,6 +2,7 @@ package com.userAuthentication.controller;
 
 import com.userAuthentication.constant.Constants;
 import com.userAuthentication.request.LoginRequest;
+import com.userAuthentication.request.LogoutRequest;
 import com.userAuthentication.request.UserCreation;
 import com.userAuthentication.request.ValidateOtpRequest;
 import com.userAuthentication.response.BaseResponse;
@@ -62,6 +63,21 @@ public class AuthController {
             logger.info(Constants.CONTROLLER_STARTED,EndPointReferrer.VALIDATE_2FA_OTP);
 
             return new ResponseEntity<>(homeManager.validate2faOtp(validateOtpRequest), HttpStatus.OK);
+
+        } catch (Exception e) {
+            logger.error("Exception occurred in request with cause - ", e);
+        }
+        return null;
+
+    }
+
+    @PostMapping(EndPointReferrer.LOGOUT)
+    public ResponseEntity<BaseResponse> logout(
+            @RequestBody @NotNull LogoutRequest logoutRequest, HttpServletRequest httpServletRequest) {
+        try {
+            logger.info(Constants.CONTROLLER_STARTED, EndPointReferrer.LOGOUT);
+
+            return new ResponseEntity<>(homeManager.logout(logoutRequest, httpServletRequest), HttpStatus.OK);
 
         } catch (Exception e) {
             logger.error("Exception occurred in request with cause - ", e);

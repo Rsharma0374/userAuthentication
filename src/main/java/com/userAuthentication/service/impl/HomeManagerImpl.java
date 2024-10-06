@@ -10,10 +10,7 @@ import com.userAuthentication.model.email.EmailReqResLog;
 import com.userAuthentication.model.email.MailRequest;
 import com.userAuthentication.model.email.MailResponse;
 import com.userAuthentication.model.user.UserRegistry;
-import com.userAuthentication.request.EmailOtpRequest;
-import com.userAuthentication.request.LoginRequest;
-import com.userAuthentication.request.UserCreation;
-import com.userAuthentication.request.ValidateOtpRequest;
+import com.userAuthentication.request.*;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.response.Error;
 import com.userAuthentication.response.email.EmailOtpResponse;
@@ -709,4 +706,26 @@ public class HomeManagerImpl implements HomeManager {
 //        return baseResponse;
 //    }
 
+    @Override
+    public BaseResponse logout(LogoutRequest logoutRequest, HttpServletRequest httpServletRequest) {
+        logger.info("Inside logout method");
+        BaseResponse baseResponse = null;
+        GenericResponse genericResponse = new GenericResponse();
+
+        try {
+            String authHeader = httpServletRequest.getHeader("Authorization");
+            String opaqueToken = authHeader.substring(7);
+            redisService.clearKeyFromRedis(opaqueToken);
+            genericResponse.setResponseMessage("Logout Successful");
+            genericResponse.setStatus(String.valueOf(HttpStatus.OK.value()));
+            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
+
+        } catch (Exception e) {
+            logger.error("Exception occurred while logout with probable cause ", e);
+            Error error = new Error();
+            error.setMessage(e.getMessage());
+            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+        }
+        return baseResponse;
+    }
 }

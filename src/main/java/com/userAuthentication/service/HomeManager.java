@@ -1,9 +1,6 @@
 package com.userAuthentication.service;
 
-import com.userAuthentication.request.EmailOtpRequest;
-import com.userAuthentication.request.LoginRequest;
-import com.userAuthentication.request.UserCreation;
-import com.userAuthentication.request.ValidateOtpRequest;
+import com.userAuthentication.request.*;
 import com.userAuthentication.response.BaseResponse;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -19,6 +16,8 @@ public interface HomeManager {
     BaseResponse sendEmailOtp(EmailOtpRequest emailOtpRequest);
 
     BaseResponse validate2faOtp(ValidateOtpRequest validateOtpRequest);
+
+    BaseResponse logout(LogoutRequest logoutRequest, HttpServletRequest httpServletRequest);
 //
 //    BaseResponse sendForgotOtp(EmailOtpRequest emailOtpRequest) throws Exception;
 //
