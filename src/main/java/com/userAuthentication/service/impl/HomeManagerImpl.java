@@ -3,7 +3,7 @@ package com.userAuthentication.service.impl;
 import com.userAuthentication.configuration.EmailConfiguration;
 import com.userAuthentication.constant.Constants;
 import com.userAuthentication.constant.FieldSeparator;
-import com.userAuthentication.constant.ProductConstants;
+import com.userAuthentication.constant.ProductName;
 import com.userAuthentication.dao.MongoService;
 import com.userAuthentication.model.GenericResponse;
 import com.userAuthentication.model.email.EmailReqResLog;
@@ -105,7 +105,7 @@ public class HomeManagerImpl implements HomeManager {
             EmailOtpRequest emailOtpRequest = new EmailOtpRequest();
             emailOtpRequest.setEmailId(userRegistry.getEmailId());
             emailOtpRequest.setOtpRequired(true);
-            emailOtpRequest.setProductName("PASSWORD_MANAGER");
+//            emailOtpRequest.setProductName(userRegistry.getPro);
             emailOtpRequest.setEmailType("2FA_OTP");
             BaseResponse baseResponse = sendEmailOtp(emailOtpRequest);
             logger.warn("BaseResponse received is {}", baseResponse);
@@ -114,7 +114,6 @@ public class HomeManagerImpl implements HomeManager {
                 if (emailOtpResponse.isSuccess()) {
                     loginResponse.setOtpToken(emailOtpResponse.getOtp());
                     loginResponse.setResponse("Access Granted");
-                    loginResponse.setToken(emailOtpResponse.getUserToken());
                 } else {
                     loginResponse.setResponse("Sending OTP failed. Please contact system administrator.");
                 }
@@ -197,7 +196,7 @@ public class HomeManagerImpl implements HomeManager {
             redisService = new RedisService();
         }
         long expiryTime = 1800;
-        String redisKey = StringUtils.join(username, FieldSeparator.UNDER_SCORE_STR, ProductConstants.PASSWORD_MANAGER);
+        String redisKey = StringUtils.join(username, FieldSeparator.UNDER_SCORE_STR, ProductName.PASSWORD_MANAGER.getName());
         Object obj = ResponseUtility.redisObject(username, token, expiryTime, null);
         //clear any existing key (One session one login)
         redisService.clearKeyFromRedis(username);
@@ -219,7 +218,7 @@ public class HomeManagerImpl implements HomeManager {
                 return ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, genericResponse);
             }
 
-            if (null != mongoService.getUserByUsername(userCreation.getUserName())) {
+            if (null != mongoService.getUserByUsernameAndProduct(userCreation.getUserName(), userCreation.getProductName().getName())) {
                 genericResponse.setStatus(String.valueOf(HttpStatus.CONFLICT.value()));
                 genericResponse.setResponseMessage("User already exists and active with username: " + userCreation.getUserName());
                 return ResponseUtility.getBaseResponse(HttpStatus.CONFLICT, genericResponse);
@@ -255,7 +254,7 @@ public class HomeManagerImpl implements HomeManager {
         EmailReqResLog emailReqResLog = new EmailReqResLog();
         EmailOtpResponse emailOtpResponse = new EmailOtpResponse();
         try {
-            EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(emailOtpRequest.getEmailType(), emailOtpRequest.getProductName(), emailOtpRequest.isOtpRequired());
+            EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(emailOtpRequest.getEmailType(), emailOtpRequest.getProductName().getName(), emailOtpRequest.isOtpRequired());
             logger.debug("Email config is {}", emailConfiguration);
 
             if (null == emailConfiguration) {
@@ -300,7 +299,6 @@ public class HomeManagerImpl implements HomeManager {
         } finally {
             mongoService.saveEmailResResLog(emailReqResLog);
             emailOtpResponse.setOtp(emailReqResLog.getId());
-            emailOtpResponse.setUserToken(emailReqResLog.getUserToken());
         }
         return baseResponse;
     }
@@ -367,7 +365,7 @@ public class HomeManagerImpl implements HomeManager {
     private boolean createAndSaveUserDetails(UserCreation userCreation) {
         boolean success = false;
         try {
-            UserRegistry userRegistry = new UserRegistry(userCreation.getUserName(), userCreation.getEmail(), userCreation.getFirstName(), userCreation.getLastName(), userCreation.getGender(), userCreation.getDateOfBirth(), userCreation.getPhoneNumber(), true, new Date(), new Date());
+            UserRegistry userRegistry = new UserRegistry(userCreation.getUserName(), userCreation.getEmail(), userCreation.getFullName(), userCreation.getGender(), userCreation.getDateOfBirth(), userCreation.getProductName(), true, new Date(), new Date());
             String encryptedPassword = EncryptDecryptService.encryptText(userCreation.getPassword());
             userRegistry.setPassword(encryptedPassword);
             success = mongoService.saveUserRegistry(userRegistry);
@@ -465,7 +463,7 @@ public class HomeManagerImpl implements HomeManager {
 
         logger.debug("Inside checking Email Flooding");
         String emailId = emailOtpRequest.getEmailId();
-        String productName = emailOtpRequest.getProductName();
+        String productName = emailOtpRequest.getProductName().getName();
         String emailType = emailOtpRequest.getEmailType();
 
         long hitCount = mongoService.getEmailTriggerCount(emailId, productName, emailType);

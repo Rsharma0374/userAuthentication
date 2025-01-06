@@ -1,14 +1,10 @@
 package com.userAuthentication.service;
 
-import com.userAuthentication.constant.FieldSeparator;
-import com.userAuthentication.constant.ProductConstants;
 import com.userAuthentication.service.redis.RedisService;
-import com.userAuthentication.utility.ResponseUtility;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;

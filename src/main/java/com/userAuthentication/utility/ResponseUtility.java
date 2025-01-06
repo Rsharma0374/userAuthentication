@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
+import com.userAuthentication.constant.ErrorCodes;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.response.Error;
 import com.userAuthentication.response.Payload;
@@ -179,4 +180,17 @@ public class ResponseUtility {
                 .errors(errors)
                 .build();
     }
+
+    public static Collection<Error> mandatoryConfigurationError() {
+        Collection<Error> errors = new ArrayList<>();
+        errors.add(Error.builder()
+                        .message(ErrorCodes.MANDATORY_CONFIGURATION_NOT_FOUND_FOR_THIS_SERVICE)
+                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                        .errorType(Error.ERROR_TYPE.SYSTEM.name())
+                        .level(Error.SEVERITY.HIGH.name())
+                .build());
+
+        return errors;
+    }
+
 }

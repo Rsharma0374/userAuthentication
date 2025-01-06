@@ -2,6 +2,7 @@ package com.userAuthentication.model.user;
 
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.userAuthentication.constant.ProductName;
 import lombok.ToString;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -21,20 +22,14 @@ public class UserRegistry {
     @JsonProperty("sPassword")
     private String password;
 
-    @JsonProperty("sFirstName")
-    private String firstName;
-
-    @JsonProperty("sLastname")
-    private String lastName;
+    @JsonProperty("sFullName")
+    private String fullName;
 
     @JsonProperty("sGender")
     private String gender;
 
     @JsonProperty("sDateOfBirth")
     private String dateOfBirth;
-
-    @JsonProperty("sPhoneNumber")
-    private String phoneNumber;
 
     @JsonProperty("bAccountActive")
     private boolean accountActive;
@@ -45,18 +40,20 @@ public class UserRegistry {
     @JsonProperty("dtLastUpdatedDate")
     private Date lastUpdatedDate;
 
+    @JsonProperty("sProductName")
+    private ProductName productName;
+
     public UserRegistry() {
 
     }
 
-    public UserRegistry(String userName, String email, String firstName, String lastName, String gender, String dateOfBirth, String phoneNumber, boolean isAccountActive, Date createdDate, Date lastUpdatedDate) {
+    public UserRegistry(String userName, String email, String fullName, String gender, String dateOfBirth, ProductName productName, boolean isAccountActive, Date createdDate, Date lastUpdatedDate) {
         this.userName = userName;
         this.emailId = email;
-        this.firstName = firstName;
-        this.lastName = lastName;
+        this.fullName = fullName;
         this.gender = gender;
         this.dateOfBirth = dateOfBirth;
-        this.phoneNumber = phoneNumber;
+        this.productName = productName;
         this.accountActive = isAccountActive;
         this.createdDate = createdDate;
         this.lastUpdatedDate = lastUpdatedDate;
@@ -87,20 +84,12 @@ public class UserRegistry {
         this.password = password;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public String getFullName() {
+        return fullName;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
     public String getGender() {
@@ -117,14 +106,6 @@ public class UserRegistry {
 
     public void setDateOfBirth(String dateOfBirth) {
         this.dateOfBirth = dateOfBirth;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
     }
 
     public boolean isAccountActive() {

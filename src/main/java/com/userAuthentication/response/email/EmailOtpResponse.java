@@ -2,16 +2,15 @@ package com.userAuthentication.response.email;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.userAuthentication.response.Error;
+import lombok.Data;
 import lombok.ToString;
 
 @ToString
+@Data
 public class EmailOtpResponse {
 
     @JsonProperty("bSuccess")
     private boolean success;
-
-    @JsonProperty("sUserToken")
-    private String userToken;
 
     @JsonProperty("aErrors")
     private Error[] errors;
@@ -25,14 +24,6 @@ public class EmailOtpResponse {
 
     public void setSuccess(boolean success) {
         this.success = success;
-    }
-
-    public String getUserToken() {
-        return userToken;
-    }
-
-    public void setUserToken(String userToken) {
-        this.userToken = userToken;
     }
 
     public Error[] getErrors() {

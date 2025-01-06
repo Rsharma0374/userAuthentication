@@ -187,7 +187,7 @@ public class MongoServiceImpl implements MongoService{
 
         try {
             Query query = new Query();
-            query.addCriteria(Criteria.where("userToken").is(userToken));
+            query.addCriteria(Criteria.where("_id").is(userToken));
 
             logger.info("Query is {}", query);
 
@@ -206,6 +206,22 @@ public class MongoServiceImpl implements MongoService{
             mongoTemplate.save(emailReqResLog);
         } catch (Exception e) {
             logger.error("exception occur during save emailReqResLog for ackid {} with probable cause- ", emailReqResLog.getId(), e);
+        }
+    }
+
+    @Override
+    public UserRegistry getUserByUsernameAndProduct(String userName, String productName) {
+        logger.info("Inside get User by getUserByUsernameAndProduct method");
+        try {
+            Query query = new Query();
+            query.addCriteria(Criteria.where("userName").is(userName)
+                    .and("productName").is(productName)
+                    .and("accountActive").is(true));
+
+            return mongoTemplate.findOne(query, UserRegistry.class);
+        } catch (Exception e) {
+            logger.error("Exception occurred while getUserByUsernameAndProduct for username {} with probable cause - ", userName, e);
+            return null;
         }
     }
 }

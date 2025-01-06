@@ -30,4 +30,5 @@ public interface MongoService {
 
     void saveEmailOtpReqRes(EmailReqResLog emailReqResLog);
 
+    UserRegistry getUserByUsernameAndProduct(String userName, String productName);
 }

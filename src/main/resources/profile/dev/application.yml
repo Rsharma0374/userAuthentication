@@ -25,4 +25,4 @@ security:
 connector:
   email:
     send:
-      api: https://connector.r-sharma.in/email-connector/send-mail
+      api: http://localhost:10002/email-connector/send-mail

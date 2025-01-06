@@ -38,7 +38,7 @@ public class SecurityConfig {
 
         return httpSecurity.csrf().disable()
                 .authorizeHttpRequests(req -> req
-                        .requestMatchers( "/auth/user-login", "/auth/validate-tfa-otp").permitAll()
+                        .requestMatchers( "/auth/user-login","/auth/create-user", "communications/*", "/auth/validate-tfa-otp", "/api/key", "/api/data").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(session ->
