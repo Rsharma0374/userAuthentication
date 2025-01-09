@@ -163,7 +163,9 @@ public class CommunicationServiceImpl implements CommunicationService {
         int attemptCount = 0;
         boolean isAttemptValid = false;
         LoginResponse loginResponse = new LoginResponse();
+        BaseResponse baseResponse = null;
         EmailReqResLog emailReqResLog = mongoService.getEmailReqResLogByUserToken(validateOtpRequest.getOtpId());
+        Collection<Error> errors = new ArrayList<>();
         try {
             if (null != emailReqResLog && StringUtils.equalsIgnoreCase(emailReqResLog.getOtp(), validateOtpRequest.getOtp())) {
                 isAttemptValid = true;
@@ -179,25 +181,35 @@ public class CommunicationServiceImpl implements CommunicationService {
                         loginResponse.setStatus("SUCCESS");
                         loginResponse.setResponse("One time password has been verified successfully.");
                         loginResponse.setEncryptedValue(ResponseUtility.encryptThisString(validateOtpRequest.getOtp() + validateOtpRequest.getOtpId()));
+                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
                     } else {
-                        loginResponse.setResponse("One time password has been expired. Please request new one time password.");
-                        loginResponse.setStatus("FAILED");
+                        errors.add(Error.builder()
+                                .message(ErrorCodes.OTP_EXPIRED)
+                                .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
+                                .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                                .level(Error.SEVERITY.LOW.name())
+                                .build());
+                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.GONE, errors);
                     }
 
                 } else {
-                    loginResponse.setResponse("Maximum OTP limit reached, please request new OTP");
-                    loginResponse.setStatus("FAILED");
+                    errors.add(Error.builder()
+                            .message(ErrorCodes.OTP_VALIDATE_LIMIT_REACHED)
+                            .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
+                            .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                            .level(Error.SEVERITY.LOW.name())
+                            .build());
+                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.TOO_MANY_REQUESTS, errors);
                 }
 
             } else {
-                Collection<Error> errors = new ArrayList<>();
                 errors.add(Error.builder()
-                        .message("OTP verification failed")
+                        .message(ErrorCodes.OTP_VERIFICATION_FAILED)
                         .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
                         .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
                         .level(Error.SEVERITY.LOW.name())
                         .build());
-                return ResponseUtility.getBaseResponse(HttpStatus.FAILED_DEPENDENCY, errors);
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
             }
 
         } catch (Exception e) {
@@ -211,6 +223,6 @@ public class CommunicationServiceImpl implements CommunicationService {
                 mongoService.saveEmailOtpReqRes(emailReqResLog);
             }
         }
-        return ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
+        return baseResponse;
     }
 }
