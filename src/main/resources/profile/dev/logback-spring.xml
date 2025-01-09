@@ -1,11 +1,11 @@
 <configuration>
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <!-- Main log file -->
-        <file>/opt/logs/userAuthentication.log</file>
+        <file>userAuthentication.log</file>
 
         <!-- Rolling log file naming pattern -->
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>/opt/logs/userAuthentication.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>userAuthentication.%d{yyyy-MM-dd}.log</fileNamePattern>
             <!-- Keep logs for 30 days -->
             <maxHistory>10</maxHistory>
         </rollingPolicy>

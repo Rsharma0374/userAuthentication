@@ -1,9 +1,7 @@
 package com.userAuthentication.service.impl;
 
 import com.userAuthentication.configuration.EmailConfiguration;
-import com.userAuthentication.constant.Constants;
-import com.userAuthentication.constant.FieldSeparator;
-import com.userAuthentication.constant.ProductName;
+import com.userAuthentication.constant.*;
 import com.userAuthentication.dao.MongoService;
 import com.userAuthentication.model.GenericResponse;
 import com.userAuthentication.model.email.EmailReqResLog;
@@ -210,29 +208,44 @@ public class HomeManagerImpl implements HomeManager {
         logger.info("Inside Create user method");
         GenericResponse genericResponse = new GenericResponse();
         BaseResponse baseResponse = null;
+        Collection<Error> errors = new ArrayList<>();
 
         try {
             if (userCreation == null) {
-                genericResponse.setStatus(String.valueOf(HttpStatus.BAD_REQUEST.value()));
-                genericResponse.setResponseMessage("User Creation Object cannot be null.");
-                return ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, genericResponse);
+                errors.add(Error.builder()
+                        .message(ErrorCodes.USER_CREATION_REQUEST_OBJECT_NULL)
+                        .errorCode(String.valueOf(HttpStatus.BAD_REQUEST.value()))
+                        .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                        .level(Error.SEVERITY.LOW.name())
+                        .build());
+                return ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
             }
 
             if (null != mongoService.getUserByUsernameAndProduct(userCreation.getUserName(), userCreation.getProductName().getName())) {
-                genericResponse.setStatus(String.valueOf(HttpStatus.CONFLICT.value()));
-                genericResponse.setResponseMessage("User already exists and active with username: " + userCreation.getUserName());
-                return ResponseUtility.getBaseResponse(HttpStatus.CONFLICT, genericResponse);
+                errors.add(Error.builder()
+                        .message(String.format(ErrorCodes.USER_ALREADY_EXIST_ERROR, userCreation.getUserName()))
+                        .errorCode(String.valueOf(HttpStatus.CONFLICT.value()))
+                        .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                        .level(Error.SEVERITY.LOW.name())
+                        .build());
+                return ResponseUtility.getBaseResponse(HttpStatus.CONFLICT, errors);
             }
 
             boolean success = createAndSaveUserDetails(userCreation);
 
             if (success) {
-                genericResponse.setStatus(String.valueOf(HttpStatus.OK.value()));
+                genericResponse.setStatus(StatusConstant.SUCCESS.name());
                 genericResponse.setResponseMessage("User Created Successfully");
                 baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
             } else {
                 genericResponse.setStatus(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()));
-                genericResponse.setResponseMessage("User creation failed..");
+                genericResponse.setResponseMessage("User creation failed.");
+                errors.add(Error.builder()
+                        .message(ErrorCodes.USER_CREATION_FAILED)
+                        .errorCode(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()))
+                        .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                        .level(Error.SEVERITY.HIGH.name())
+                        .build());
                 baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
             }
         } catch (Exception ex) {
