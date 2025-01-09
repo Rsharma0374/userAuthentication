@@ -6,7 +6,7 @@ import lombok.ToString;
 @ToString
 public class GenericResponse {
 
-    @JsonProperty("status")
+    @JsonProperty("sStatus")
     private String status;
 
     @JsonProperty("sResponseMessage")
