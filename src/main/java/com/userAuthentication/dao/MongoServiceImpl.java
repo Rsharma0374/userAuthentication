@@ -210,12 +210,15 @@ public class MongoServiceImpl implements MongoService{
     }
 
     @Override
-    public UserRegistry getUserByUsernameAndProduct(String userName, String productName) {
+    public UserRegistry getUserByUsernameorEmailAndProduct(String userName, String emailId, String productName) {
         logger.info("Inside get User by getUserByUsernameAndProduct method");
         try {
             Query query = new Query();
-            query.addCriteria(Criteria.where("userName").is(userName)
-                    .and("productName").is(productName)
+            query.addCriteria(Criteria.where("productName").is(productName)
+                    .orOperator(
+                            Criteria.where("emailId").is(emailId),
+                            Criteria.where("userName").is(userName)
+                    )
                     .and("accountActive").is(true));
 
             return mongoTemplate.findOne(query, UserRegistry.class);

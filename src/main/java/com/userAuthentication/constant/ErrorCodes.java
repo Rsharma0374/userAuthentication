@@ -8,7 +8,7 @@ public class ErrorCodes {
     public static final String OTP_VALIDATE_LIMIT_REACHED = "Maximum OTP limit reached, please request new OTP";
     public static final String OTP_VERIFICATION_FAILED = "OTP verification failed";
     public static final String USER_CREATION_REQUEST_OBJECT_NULL = "User Creation Object cannot be null.";
-    public static final String USER_ALREADY_EXIST_ERROR = "User already exists and active with username: %s";
+    public static final String USER_ALREADY_EXIST_ERROR = "User already exists and active with provided username or email";
     public static final String USER_CREATION_FAILED = "User creation failed.";
 
 }

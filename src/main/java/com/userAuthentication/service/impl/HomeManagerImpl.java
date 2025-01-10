@@ -221,9 +221,9 @@ public class HomeManagerImpl implements HomeManager {
                 return ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
             }
 
-            if (null != mongoService.getUserByUsernameAndProduct(userCreation.getUserName(), userCreation.getProductName().getName())) {
+            if (null != mongoService.getUserByUsernameorEmailAndProduct(userCreation.getUserName(), userCreation.getEmail(), userCreation.getProductName().getName())) {
                 errors.add(Error.builder()
-                        .message(String.format(ErrorCodes.USER_ALREADY_EXIST_ERROR, userCreation.getUserName()))
+                        .message(ErrorCodes.USER_ALREADY_EXIST_ERROR)
                         .errorCode(String.valueOf(HttpStatus.CONFLICT.value()))
                         .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
                         .level(Error.SEVERITY.LOW.name())
