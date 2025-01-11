@@ -10,5 +10,9 @@ public class ErrorCodes {
     public static final String USER_CREATION_REQUEST_OBJECT_NULL = "User Creation Object cannot be null.";
     public static final String USER_ALREADY_EXIST_ERROR = "User already exists and active with provided username or email";
     public static final String USER_CREATION_FAILED = "User creation failed.";
+    public static final String FORGOT_PASSWORD_BAD_REQUEST = "Forgot password request is null or email and username bot are blank";
+    public static final String SOMETHING_WENT_WRONG = "Something went wrong, Please contact system administrator";
+    public static final String VALIDATE_OTP_BAD_REQUEST = "Validate otp request is null.";
+    public static final String SMS_SENDING_FAIL_TRY_AGAIN = "Sms sending failed, try again";
 
 }

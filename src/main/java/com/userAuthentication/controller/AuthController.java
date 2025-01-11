@@ -1,10 +1,7 @@
 package com.userAuthentication.controller;
 
 import com.userAuthentication.constant.Constants;
-import com.userAuthentication.request.LoginRequest;
-import com.userAuthentication.request.LogoutRequest;
-import com.userAuthentication.request.UserCreation;
-import com.userAuthentication.request.ValidateOtpRequest;
+import com.userAuthentication.request.*;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.service.HomeManager;
 import jakarta.servlet.http.HttpServletRequest;
@@ -83,6 +80,17 @@ public class AuthController {
             logger.error("Exception occurred in request with cause - ", e);
         }
         return null;
+
+    }
+
+    @PostMapping(EndPointReferrer.FORGET_PASSWORD)
+    public ResponseEntity<BaseResponse> forgotPassword(
+            @RequestBody @NotNull EncryptedPayload payload) {
+
+            logger.info(Constants.CONTROLLER_STARTED, EndPointReferrer.FORGET_PASSWORD);
+
+            return new ResponseEntity<>(homeManager.forgotPassword(payload), HttpStatus.OK);
+
 
     }
 

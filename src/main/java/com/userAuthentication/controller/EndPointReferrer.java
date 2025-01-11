@@ -16,6 +16,8 @@ public class EndPointReferrer {
 
     public static final String  FORGET_PASSWORD = "forget-password";
 
+    public static final String  VALIDATE_OTP_RESET_PASSWORD = "validate-otp-reset-password";
+
     public static final String  VALIDATE_EMAIL = "validate-email";
 
     public static final String  VALIDATE_EMAIL_OTP = "validate-email-otp";

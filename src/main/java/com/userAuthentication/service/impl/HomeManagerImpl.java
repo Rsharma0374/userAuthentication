@@ -1,5 +1,6 @@
 package com.userAuthentication.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.userAuthentication.configuration.EmailConfiguration;
 import com.userAuthentication.constant.*;
 import com.userAuthentication.dao.MongoService;
@@ -14,6 +15,7 @@ import com.userAuthentication.response.Error;
 import com.userAuthentication.response.email.EmailOtpResponse;
 import com.userAuthentication.response.login.LoginResponse;
 import com.userAuthentication.security.EncryptDecryptService;
+import com.userAuthentication.service.CommunicationService;
 import com.userAuthentication.service.HomeManager;
 import com.userAuthentication.service.JWTService;
 import com.userAuthentication.service.redis.RedisService;
@@ -48,6 +50,9 @@ public class HomeManagerImpl implements HomeManager {
 
     @Autowired
     private JWTService jwtService;
+
+    @Autowired
+    private CommunicationService communicationService;
 
     /**
      * The `login` function in Java handles user authentication by checking the password with SHA encryption and generating
@@ -322,7 +327,7 @@ public class HomeManagerImpl implements HomeManager {
         int attemptCount = 0;
         boolean isAttemptValid = false;
         LoginResponse loginResponse = new LoginResponse();
-        EmailReqResLog emailReqResLog = mongoService.getEmailReqResLogByUserToken(validateOtpRequest.getOtpId());
+        EmailReqResLog emailReqResLog = mongoService.getEmailReqResLogByOtpId(validateOtpRequest.getOtpId());
         try {
             if (null != emailReqResLog && StringUtils.equalsIgnoreCase(emailReqResLog.getOtp(), validateOtpRequest.getOtp())) {
                 isAttemptValid = true;
@@ -733,6 +738,64 @@ public class HomeManagerImpl implements HomeManager {
 
         } catch (Exception e) {
             logger.error("Exception occurred while logout with probable cause ", e);
+            Error error = new Error();
+            error.setMessage(e.getMessage());
+            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+        }
+        return baseResponse;
+    }
+
+    @Override
+    public BaseResponse forgotPassword(EncryptedPayload payload) {
+        logger.info("Inside forgotPassword method");
+        BaseResponse baseResponse = null;
+        EmailOtpResponse emailOtpResponse = new EmailOtpResponse();
+        Collection<Error> errors = new ArrayList<>();
+        try {
+            String decryptedPayload = EncryptDecryptService.decryptPayload(payload.getEncryptedPayload());
+            if (StringUtils.isNotBlank(decryptedPayload)) {
+                // Convert the decrypted string to a Java class
+                ObjectMapper objectMapper = new ObjectMapper();
+                ForgotPasswordRequest forgotPasswordRequest = objectMapper.readValue(decryptedPayload, ForgotPasswordRequest.class);
+                if (null == forgotPasswordRequest || (StringUtils.isBlank(forgotPasswordRequest.getEmailId()) && StringUtils.isBlank(forgotPasswordRequest.getUsername()))) {
+                    logger.error(ErrorCodes.FORGOT_PASSWORD_BAD_REQUEST);
+                    errors.add(Error.builder()
+                            .message(ErrorCodes.FORGOT_PASSWORD_BAD_REQUEST)
+                            .errorCode(String.valueOf(Error.ERROR_TYPE.BAD_REQUEST.toCode()))
+                            .errorType(Error.ERROR_TYPE.BAD_REQUEST.toValue())
+                            .level(Error.SEVERITY.HIGH.name())
+                            .build());
+                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                } else {
+                    UserRegistry userRegistry = mongoService.getUserByUsernameorEmailAndProduct(forgotPasswordRequest.getUsername(), forgotPasswordRequest.getEmailId(), forgotPasswordRequest.getProductName().getName());
+                    if (null!= userRegistry) {
+                        EmailOtpRequest emailOtpRequest = new EmailOtpRequest();
+                        emailOtpRequest.setEmailId(forgotPasswordRequest.getEmailId());
+                        emailOtpRequest.setProductName(forgotPasswordRequest.getProductName());
+                        emailOtpRequest.setOtpRequired(true);
+                        emailOtpRequest.setEmailType("FORGOT_PASSWORD_OTP");
+                        baseResponse = communicationService.sendEmailOtp(emailOtpRequest);
+
+                    } else {
+                        emailOtpResponse.setSuccess(true);
+                        emailOtpResponse.setOtp(TokenGenerator.generateHexString(24));
+                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
+                    }
+                }
+            } else {
+                logger.error("Error occurred while decrypting the payload");
+                errors.add(Error.builder()
+                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
+                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
+                        .level(Error.SEVERITY.HIGH.name())
+                        .build());
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
+            }
+
+
+        } catch (Exception e) {
+            logger.error("Exception occurred while forgotPassword with probable cause ", e);
             Error error = new Error();
             error.setMessage(e.getMessage());
             baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));

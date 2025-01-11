@@ -3,20 +3,29 @@ package com.userAuthentication.service.impl;
 import com.userAuthentication.configuration.EmailConfiguration;
 import com.userAuthentication.constant.Constants;
 import com.userAuthentication.constant.ErrorCodes;
+import com.userAuthentication.constant.FieldSeparator;
+import com.userAuthentication.constant.StatusConstant;
 import com.userAuthentication.dao.MongoService;
 import com.userAuthentication.model.email.EmailReqResLog;
 import com.userAuthentication.model.email.MailRequest;
 import com.userAuthentication.model.email.MailResponse;
+import com.userAuthentication.model.user.UserRegistry;
 import com.userAuthentication.request.EmailOtpRequest;
+import com.userAuthentication.request.EncryptedPayload;
+import com.userAuthentication.request.UserCreation;
 import com.userAuthentication.request.ValidateOtpRequest;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.response.Error;
 import com.userAuthentication.response.email.EmailOtpResponse;
+import com.userAuthentication.response.email.ValidateOtpResponse;
 import com.userAuthentication.response.login.LoginResponse;
+import com.userAuthentication.security.EncryptDecryptService;
 import com.userAuthentication.service.CommunicationService;
 import com.userAuthentication.service.redis.RedisService;
 import com.userAuthentication.service.utility.TransportUtils;
+import com.userAuthentication.utility.JsonUtils;
 import com.userAuthentication.utility.ResponseUtility;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +74,7 @@ public class CommunicationServiceImpl implements CommunicationService {
             }
             String otp = ResponseUtility.generateOtpAgainstLength(6);
 
-            getEmailTextByType(emailConfiguration, emailOtpRequest.getEmailId(), mailRequest, otp);
+            getEmailTextByType(emailConfiguration, emailOtpRequest.getEmailId(), mailRequest, otp, null);
             settingEmailReqResLog(emailReqResLog, otp, mailRequest, emailOtpRequest);
 
 
@@ -82,16 +91,22 @@ public class CommunicationServiceImpl implements CommunicationService {
                     baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
                 } else {
                     logger.error("Mail Response is not null");
-                    error.setMessage("Sms sending failed, try again");
-                    error.setErrorCode(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()));
-                    errors.add(error);
+                    errors.add(Error.builder()
+                            .message(ErrorCodes.SMS_SENDING_FAIL_TRY_AGAIN)
+                            .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                            .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
+                            .level(Error.SEVERITY.HIGH.name())
+                            .build());
                     baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
                 }
             } else {
                 logger.error("Mail Response is null");
-                error.setMessage("Sms sending failed, try again");
-                error.setErrorCode(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()));
-                errors.add(error);
+                errors.add(Error.builder()
+                        .message(ErrorCodes.SMS_SENDING_FAIL_TRY_AGAIN)
+                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
+                        .level(Error.SEVERITY.HIGH.name())
+                        .build());
                 baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
             }
 
@@ -129,13 +144,19 @@ public class CommunicationServiceImpl implements CommunicationService {
         return ResponseUtility.getBaseResponse(HttpStatus.TOO_MANY_REQUESTS, errors);
     }
 
-    private void getEmailTextByType(EmailConfiguration emailConfiguration, String emailId, MailRequest mailRequest, String otp) {
+    private void getEmailTextByType(EmailConfiguration emailConfiguration, String emailId, MailRequest mailRequest, String otp, Map<String, String> requestData) {
 
         String smsContent = null;
         String emailType = emailConfiguration.getEmailType();
+        String fullName = null != requestData ? requestData.get(Constants.FULL_NAME) : FieldSeparator.BLANK;
+        String password = null != requestData ? requestData.get(Constants.PASSWORD) : FieldSeparator.BLANK;
         switch (emailType) {
-            case "EMAIL_VERIFICATION", Constants.RESET_PASSWORD, "EMAIL_OTP_SMS", "2FA_OTP" -> {
+            case "EMAIL_VERIFICATION", "EMAIL_OTP_SMS", "2FA_OTP", "FORGOT_PASSWORD_OTP" -> {
                 smsContent = emailConfiguration.getFormattedSMSText(otp);
+            }
+
+            case Constants.RESET_PASSWORD -> {
+                smsContent = emailConfiguration.getFormattedSMSText(fullName, password);
             }
             default -> {
                 // by default email content will be null
@@ -164,7 +185,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         boolean isAttemptValid = false;
         LoginResponse loginResponse = new LoginResponse();
         BaseResponse baseResponse = null;
-        EmailReqResLog emailReqResLog = mongoService.getEmailReqResLogByUserToken(validateOtpRequest.getOtpId());
+        EmailReqResLog emailReqResLog = mongoService.getEmailReqResLogByOtpId(validateOtpRequest.getOtpId());
         Collection<Error> errors = new ArrayList<>();
         try {
             if (null != emailReqResLog && StringUtils.equalsIgnoreCase(emailReqResLog.getOtp(), validateOtpRequest.getOtp())) {
@@ -178,7 +199,7 @@ public class CommunicationServiceImpl implements CommunicationService {
                     long difference = Math.abs(currentTime - actualTime);
 
                     if (difference < 2 * 60 * 1000) {
-                        loginResponse.setStatus("SUCCESS");
+                        loginResponse.setStatus(StatusConstant.SUCCESS.name());
                         loginResponse.setResponse("One time password has been verified successfully.");
                         loginResponse.setEncryptedValue(ResponseUtility.encryptThisString(validateOtpRequest.getOtp() + validateOtpRequest.getOtpId()));
                         baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
@@ -223,6 +244,155 @@ public class CommunicationServiceImpl implements CommunicationService {
                 mongoService.saveEmailOtpReqRes(emailReqResLog);
             }
         }
+        return baseResponse;
+    }
+
+    @Override
+    public BaseResponse validateOtpResetPassword(EncryptedPayload encryptedPayload) {
+        BaseResponse baseResponse = null;
+        int attemptCount = 0;
+        boolean isAttemptValid = false;
+        Collection<Error> errors = new ArrayList<>();
+
+        ValidateOtpResponse validateOtpResponse = new ValidateOtpResponse();
+        try {
+            String decryptedPayload = EncryptDecryptService.decryptPayload(encryptedPayload.getEncryptedPayload());
+            if (StringUtils.isNoneBlank(decryptedPayload)) {
+                ValidateOtpRequest validateOtpRequest = JsonUtils.parseJson(decryptedPayload, ValidateOtpRequest.class);
+                if (null == validateOtpRequest) {
+                    logger.error(ErrorCodes.VALIDATE_OTP_BAD_REQUEST);
+                    errors.add(Error.builder()
+                            .message(ErrorCodes.VALIDATE_OTP_BAD_REQUEST)
+                            .errorCode(String.valueOf(Error.ERROR_TYPE.BAD_REQUEST.toCode()))
+                            .errorType(Error.ERROR_TYPE.BAD_REQUEST.toValue())
+                            .level(Error.SEVERITY.HIGH.name())
+                            .build());
+                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                } else {
+
+                    EmailReqResLog emailReqResLog = mongoService.getEmailReqResLogByOtpId(validateOtpRequest.getOtpId());
+                    if (null != emailReqResLog && StringUtils.equalsIgnoreCase(emailReqResLog.getOtp(), validateOtpRequest.getOtp())) {
+                        isAttemptValid = true;
+                        attemptCount = emailReqResLog.getTotalAttempt() + 1;
+                        if (attemptCount <= 3) {
+
+                            long actualTime = emailReqResLog.getDateTime().getTime();
+                            long currentTime = System.currentTimeMillis();
+                            long difference = Math.abs(currentTime - actualTime);
+
+                            if (difference < 2 * 60 * 1000) {
+                                validateOtpResponse.setSuccess(StatusConstant.SUCCESS.name());
+                                validateOtpResponse.setServerSideValidation(ResponseUtility.encryptThisString(emailReqResLog.getOtp() + validateOtpRequest.getOtpId()));
+                                baseResponse = createAndSendPasswordMail(emailReqResLog.getEmailId(), validateOtpRequest.getProductName().getName(), validateOtpResponse);
+                            } else {
+                                errors.add(Error.builder()
+                                        .message(ErrorCodes.OTP_EXPIRED)
+                                        .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
+                                        .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                                        .level(Error.SEVERITY.LOW.name())
+                                        .build());
+                                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.GONE, errors);
+                            }
+
+                        } else {
+                            errors.add(Error.builder()
+                                    .message(ErrorCodes.OTP_VALIDATE_LIMIT_REACHED)
+                                    .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
+                                    .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                                    .level(Error.SEVERITY.LOW.name())
+                                    .build());
+                            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.TOO_MANY_REQUESTS, errors);
+                        }
+                    } else {
+                        errors.add(Error.builder()
+                                .message(ErrorCodes.OTP_VERIFICATION_FAILED)
+                                .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
+                                .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                                .level(Error.SEVERITY.LOW.name())
+                                .build());
+                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                    }
+                }
+
+            } else {
+                logger.error("Error occurred while decrypting the payload");
+                errors.add(Error.builder()
+                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
+                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
+                        .level(Error.SEVERITY.HIGH.name())
+                        .build());
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
+            }
+
+        } catch (Exception ex) {
+            logger.error("Exception occurred while validation Otp with probable cause - ", ex);
+
+            Error error = new Error();
+            error.setMessage(ex.getMessage());
+            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+        }
+        return baseResponse;
+    }
+
+    private BaseResponse createAndSendPasswordMail(String emailId, String productName, ValidateOtpResponse validateOtpResponse) throws Exception {
+        UserRegistry userCreation = mongoService.getUserByUsernameorEmailAndProduct(FieldSeparator.BLANK, emailId, productName);
+        MailRequest mailRequest = new MailRequest();
+        MailResponse mailResponse = new MailResponse();
+        BaseResponse baseResponse = null;
+        EmailReqResLog emailReqResLog = new EmailReqResLog();
+        Collection<Error> errors = new ArrayList<>();
+
+        try {
+            if (null != userCreation) {
+                String password = ResponseUtility.generateStringAgainstLength(10);
+                mongoService.updatePasswordByEmailAndProduct(emailId, password, productName);
+
+                EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(Constants.RESET_PASSWORD, productName, false);
+                if (null == emailConfiguration) {
+                    return ResponseUtility.getBaseResponse(HttpStatus.NO_CONTENT, ResponseUtility.mandatoryConfigurationError());
+                }
+                Map<String, String> requestData = new HashMap<>();
+                requestData.put(Constants.FULL_NAME, userCreation.getFullName());
+                requestData.put(Constants.PASSWORD, password);
+                getEmailTextByType(emailConfiguration, emailId, mailRequest, null, requestData);
+                //To-do set EmailReqResLog
+                mailResponse = (MailResponse) TransportUtils.postJsonRequest(mailRequest, connectorEmailSendUrl, MailResponse.class);
+
+                Error error = new Error();
+                logger.info("Mail Response : {}", mailResponse);
+                if (mailResponse != null) {
+                    emailReqResLog.setMailResponseStatus(mailResponse.getStatus());
+                    if (mailResponse.getStatus().equalsIgnoreCase(Constants.SUCCESS)) {
+                        validateOtpResponse.setMessage(Constants.PASSWORD_RESET_SUCCESSFULLY);
+                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, validateOtpResponse);
+                    } else {
+                        logger.error("Mail Response is not null");
+                        errors.add(Error.builder()
+                                .message(ErrorCodes.SMS_SENDING_FAIL_TRY_AGAIN)
+                                .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                                .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
+                                .level(Error.SEVERITY.HIGH.name())
+                                .build());
+                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
+                    }
+                } else {
+                    logger.error("Mail Response is null");
+                    errors.add(Error.builder()
+                            .message(ErrorCodes.SMS_SENDING_FAIL_TRY_AGAIN)
+                            .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                            .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
+                            .level(Error.SEVERITY.HIGH.name())
+                            .build());
+                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
+                }
+            }
+
+        } catch (Exception e) {
+            logger.error("Exception occurred while sending otp with probable cause - ", e);
+            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(e));
+        }
+
         return baseResponse;
     }
 }

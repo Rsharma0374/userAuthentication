@@ -11,5 +11,8 @@ public final class Constants {
     public static final String TECHNICAL_ERROR = "Technical error occurred. Please try again later.";
     public static final String CONTROLLER_STARTED = "{} controller started";
     public static final String SECRET_KEY = "SECRET_KEY";
+    public static final String PASSWORD = "password";
+    public static final String FULL_NAME = "fullName";
+    public static final String PASSWORD_RESET_SUCCESSFULLY = "Password reset successfully. New password has been shared to registered email.";
 
 }

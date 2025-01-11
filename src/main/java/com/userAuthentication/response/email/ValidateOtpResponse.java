@@ -1,13 +1,17 @@
 package com.userAuthentication.response.email;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+import lombok.ToString;
 
 import java.util.Arrays;
 
+@Data
+@ToString
 public class ValidateOtpResponse {
 
-    @JsonProperty("bSuccess")
-    private boolean success;
+    @JsonProperty("sStatus")
+    private String success;
 
     @JsonProperty("aErrors")
     private Error[] errors;
@@ -18,45 +22,4 @@ public class ValidateOtpResponse {
     @JsonProperty("sMessage")
     private String message;
 
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
-
-    public Error[] getErrors() {
-        return errors;
-    }
-
-    public void setErrors(Error[] errors) {
-        this.errors = errors;
-    }
-
-    public String getServerSideValidation() {
-        return serverSideValidation;
-    }
-
-    public void setServerSideValidation(String serverSideValidation) {
-        this.serverSideValidation = serverSideValidation;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    @Override
-    public String toString() {
-        return "ValidateOtpResponse{" +
-                "success=" + success +
-                ", errors=" + Arrays.toString(errors) +
-                ", serverSideValidation='" + serverSideValidation + '\'' +
-                ", message='" + message + '\'' +
-                '}';
-    }
 }

@@ -20,7 +20,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 @Repository
-public class MongoServiceImpl implements MongoService{
+public class MongoServiceImpl implements MongoService {
 
     @Autowired
     private MongoTemplate mongoTemplate;
@@ -165,12 +165,13 @@ public class MongoServiceImpl implements MongoService{
     }
 
     @Override
-    public void updatePassword(String emailId, String password) {
+    public void updatePasswordByEmailAndProduct(String emailId, String password, String productName) {
         logger.info("Inside update Password method");
 
         try {
             Query query = new Query();
             query.addCriteria(Criteria.where("emailId").is(emailId)
+                    .and("productName").is(productName)
                     .and("accountActive").is(true));
 
             Update update = new Update();
@@ -183,7 +184,7 @@ public class MongoServiceImpl implements MongoService{
     }
 
     @Override
-    public EmailReqResLog getEmailReqResLogByUserToken(String userToken) {
+    public EmailReqResLog getEmailReqResLogByOtpId(String userToken) {
 
         try {
             Query query = new Query();

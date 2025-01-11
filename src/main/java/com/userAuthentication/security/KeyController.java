@@ -1,7 +1,10 @@
 package com.userAuthentication.security;
 
+import com.userAuthentication.config.CacheConfig;
+import com.userAuthentication.request.EncryptedPayload;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.utility.ResponseUtility;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +33,8 @@ public class KeyController {
         keyGen.init(256);
         this.secretKey = keyGen.generateKey();
 
+        CacheConfig.CACHE.put("secretKey", this.secretKey);
+
         // Generate a 16-byte IV
         byte[] ivBytes = new byte[16];
         SecureRandom secureRandom = new SecureRandom();
@@ -55,27 +60,16 @@ public class KeyController {
 
     @PostMapping("/data")
     public ResponseEntity<String> receiveEncryptedData(@RequestBody EncryptedPayload payload) throws Exception {
-        String decryptedData = decrypt(payload.getEncryptedPayload());
+        String decryptedData = EncryptDecryptService.decryptPayload(payload.getEncryptedPayload());
         return ResponseEntity.ok("Data received: " + decryptedData);
     }
 
-    private String decrypt(String encryptedData) throws Exception {
-        Cipher cipher = Cipher.getInstance("AES");
-        cipher.init(Cipher.DECRYPT_MODE, secretKey);
-        byte[] decodedBytes = Base64.getDecoder().decode(encryptedData);
-        byte[] decryptedBytes = cipher.doFinal(decodedBytes);
-        return new String(decryptedBytes);
-    }
+//    public String decrypt(String encryptedData) throws Exception {
+//        Cipher cipher = Cipher.getInstance("AES");
+//        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+//        byte[] decodedBytes = Base64.getDecoder().decode(encryptedData);
+//        byte[] decryptedBytes = cipher.doFinal(decodedBytes);
+//        return new String(decryptedBytes);
+//    }
 
-    static class EncryptedPayload {
-        private String encryptedPayload;
-
-        public String getEncryptedPayload() {
-            return encryptedPayload;
-        }
-
-        public void setEncryptedPayload(String encryptedPayload) {
-            this.encryptedPayload = encryptedPayload;
-        }
-    }
 }

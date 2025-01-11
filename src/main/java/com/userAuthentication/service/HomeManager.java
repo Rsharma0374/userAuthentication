@@ -4,6 +4,8 @@ import com.userAuthentication.request.*;
 import com.userAuthentication.response.BaseResponse;
 import jakarta.servlet.http.HttpServletRequest;
 
+import javax.validation.constraints.NotNull;
+
 
 //import javax.servlet.http.HttpServletRequest;
 
@@ -18,6 +20,8 @@ public interface HomeManager {
     BaseResponse validate2faOtp(ValidateOtpRequest validateOtpRequest);
 
     BaseResponse logout(LogoutRequest logoutRequest, HttpServletRequest httpServletRequest);
+
+    BaseResponse forgotPassword(EncryptedPayload payload);
 //
 //    BaseResponse sendForgotOtp(EmailOtpRequest emailOtpRequest) throws Exception;
 //

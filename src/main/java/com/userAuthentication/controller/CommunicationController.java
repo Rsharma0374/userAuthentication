@@ -2,6 +2,7 @@ package com.userAuthentication.controller;
 
 import com.userAuthentication.constant.Constants;
 import com.userAuthentication.request.EmailOtpRequest;
+import com.userAuthentication.request.EncryptedPayload;
 import com.userAuthentication.request.ValidateOtpRequest;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.service.CommunicationService;
@@ -41,6 +42,15 @@ public class CommunicationController {
         logger.debug(Constants.CONTROLLER_STARTED, EndPointReferrer.VALIDATE_EMAIL_OTP);
 
         return new ResponseEntity<>(communicationService.validateEmailOtp(validateOtpRequest), HttpStatus.OK);
+
+    }
+
+    @PostMapping(EndPointReferrer.VALIDATE_OTP_RESET_PASSWORD)
+    private ResponseEntity<BaseResponse> validateOtpResetPassword(@RequestBody @NotNull EncryptedPayload encryptedPayload) {
+
+        logger.debug(Constants.CONTROLLER_STARTED, EndPointReferrer.VALIDATE_OTP_RESET_PASSWORD);
+
+        return new ResponseEntity<>(communicationService.validateOtpResetPassword(encryptedPayload), HttpStatus.OK);
 
     }
 }

@@ -1,60 +1,35 @@
 package com.userAuthentication.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.userAuthentication.constant.ProductName;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.ToString;
 
+import javax.validation.constraints.NotBlank;
+
+@Data
+@ToString
+@NoArgsConstructor
 public class ValidateOtpRequest {
 
+    @NonNull
+    @NotBlank
     @JsonProperty("sOtp")
     private String otp;
 
+    @NonNull
+    @NotBlank
     @JsonProperty("sOtpId")
     private String otpId;
 
+    @NonNull
+    @NotBlank
     @JsonProperty("sProductName")
-    private String productName;
+    private ProductName productName;
 
     @JsonProperty("sUserName")
     private String userName;
 
-    public String getOtp() {
-        return otp;
-    }
-
-    public void setOtp(String otp) {
-        this.otp = otp;
-    }
-
-    public String getOtpId() {
-        return otpId;
-    }
-
-    public void setOtpId(String otpId) {
-        this.otpId = otpId;
-    }
-
-    public String getProductName() {
-        return productName;
-    }
-
-    public void setProductName(String productName) {
-        this.productName = productName;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    @Override
-    public String toString() {
-        return "ValidateOtpRequest{" +
-                "otp='" + otp + '\'' +
-                ", otpId='" + otpId + '\'' +
-                ", productName='" + productName + '\'' +
-                ", userName='" + userName + '\'' +
-                '}';
-    }
 }

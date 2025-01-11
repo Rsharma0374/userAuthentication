@@ -20,13 +20,13 @@ public interface MongoService {
 
     UserCreation getUserWithEmail(String email);
 
-    void updatePassword(String emailId, String password);
+    void updatePasswordByEmailAndProduct(String emailId, String password, String productName);
 
     boolean saveUserRegistry(UserRegistry userRegistry);
 
     UserRegistry getUserByUsername(String userName);
 
-    EmailReqResLog getEmailReqResLogByUserToken(String userToken);
+    EmailReqResLog getEmailReqResLogByOtpId(String userToken);
 
     void saveEmailOtpReqRes(EmailReqResLog emailReqResLog);
 
