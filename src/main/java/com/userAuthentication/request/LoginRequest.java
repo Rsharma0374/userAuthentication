@@ -1,35 +1,28 @@
 package com.userAuthentication.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.userAuthentication.constant.ProductName;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 
 /**
  * @author rahul
  */
 @Data
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
 public class LoginRequest {
 
-    @JsonProperty("sUserName")
-    private String userName;
+    @JsonProperty("sUserIdentifier")
+    private String userIdentifier;
 
     @JsonProperty("sSHAPassword")
     private String shaPassword;
 
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    public String getShaPassword() {
-        return shaPassword;
-    }
-
-    public void setShaPassword(String shaPassword) {
-        this.shaPassword = shaPassword;
-    }
-
+    @JsonProperty("sProductName")
+    private ProductName productName;
 }

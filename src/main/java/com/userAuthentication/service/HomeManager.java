@@ -11,7 +11,7 @@ import javax.validation.constraints.NotNull;
 
 public interface HomeManager {
 
-    BaseResponse login(LoginRequest loginRequest, HttpServletRequest httpRequest)throws Exception;
+    BaseResponse login(EncryptedPayload encryptedPayload, HttpServletRequest httpRequest)throws Exception;
 
     BaseResponse createUser(UserCreation userCreation);
 

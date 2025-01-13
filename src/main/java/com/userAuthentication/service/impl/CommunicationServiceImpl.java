@@ -88,6 +88,7 @@ public class CommunicationServiceImpl implements CommunicationService {
                     emailOtpResponse.setSuccess(true);
                     emailOtpResponse.setOtp(emailReqResLog.getId());
                     emailReqResLog.setUserToken(String.valueOf(UUID.randomUUID()));
+                    emailOtpResponse.setMessage(Constants.FURTHER_INSTRUCTION_SENT_ON_EMAIL);
                     baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
                 } else {
                     logger.error("Mail Response is not null");

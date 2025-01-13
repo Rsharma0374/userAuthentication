@@ -14,5 +14,6 @@ public final class Constants {
     public static final String PASSWORD = "password";
     public static final String FULL_NAME = "fullName";
     public static final String PASSWORD_RESET_SUCCESSFULLY = "Password reset successfully. New password has been shared to registered email.";
+    public static final String FURTHER_INSTRUCTION_SENT_ON_EMAIL = "Further instruction has been sent on registered email.";
 
 }

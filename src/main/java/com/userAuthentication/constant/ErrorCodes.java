@@ -14,5 +14,6 @@ public class ErrorCodes {
     public static final String SOMETHING_WENT_WRONG = "Something went wrong, Please contact system administrator";
     public static final String VALIDATE_OTP_BAD_REQUEST = "Validate otp request is null.";
     public static final String SMS_SENDING_FAIL_TRY_AGAIN = "Sms sending failed, try again";
+    public static final String LOGIN_BAD_REQUEST = "Login request is null.";
 
 }

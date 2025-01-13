@@ -177,7 +177,7 @@ public class MongoServiceImpl implements MongoService {
             Update update = new Update();
             update.set("password", password);
 
-            mongoTemplate.updateFirst(query, update, UserCreation.class);
+            mongoTemplate.updateFirst(query, update, UserRegistry.class);
         } catch (Exception e) {
             logger.error("Exception occurred due to - ", e);
         }

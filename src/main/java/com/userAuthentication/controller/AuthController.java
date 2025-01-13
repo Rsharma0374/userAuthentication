@@ -30,11 +30,11 @@ public class AuthController {
 
     @PostMapping(EndPointReferrer.LOGIN)
     public ResponseEntity<BaseResponse> getLogin(
-            @RequestBody @NotNull LoginRequest loginRequest,
+            @RequestBody @NotNull EncryptedPayload encryptedPayload,
             HttpServletRequest httpRequest) throws Exception {
 
         logger.debug(Constants.CONTROLLER_STARTED, EndPointReferrer.LOGIN);
-        return new ResponseEntity<>(homeManager.login(loginRequest, httpRequest), HttpStatus.OK);
+        return new ResponseEntity<>(homeManager.login(encryptedPayload, httpRequest), HttpStatus.OK);
 
     }
 

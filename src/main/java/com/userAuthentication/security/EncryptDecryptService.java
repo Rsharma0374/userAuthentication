@@ -3,14 +3,11 @@ package com.userAuthentication.security;
 import com.userAuthentication.config.CacheConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -43,12 +40,12 @@ public class EncryptDecryptService {
         return iv;
     }
 
-    public static String decryptedTextOrReturnSame(String encryptedPassword) {
+    public static String decryptedTextOrReturnSame(String encryptedText) {
         try {
             String secretKey = (String) CacheConfig.CACHE.get(SECRET_KEY);
 
             // Base64 decode
-            byte[] combined = Base64.getDecoder().decode(encryptedPassword);
+            byte[] combined = Base64.getDecoder().decode(encryptedText);
 
             // Extract IV and encrypted password bytes
             byte[] iv = new byte[16];
@@ -66,7 +63,7 @@ public class EncryptDecryptService {
             return new String(decryptedPasswordBytes, StandardCharsets.UTF_8);
         } catch (Exception e) {
             logger.error("Something went wrong decrypting password", e);
-            return encryptedPassword;
+            return encryptedText;
         }
     }
 
@@ -77,4 +74,15 @@ public class EncryptDecryptService {
         byte[] decryptedBytes = cipher.doFinal(decodedBytes);
         return new String(decryptedBytes);
     }
+
+    public static String hashPassword(String password) {
+        int workFactor = 10;
+        String salt = BCrypt.gensalt(workFactor);
+        return BCrypt.hashpw(password, salt);
+    }
+
+    public static boolean checkPassword(String password, String hashedPassword) {
+        return BCrypt.checkpw(password, hashedPassword);
+    }
+
 }

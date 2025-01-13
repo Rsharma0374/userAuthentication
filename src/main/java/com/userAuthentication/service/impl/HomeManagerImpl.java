@@ -20,6 +20,7 @@ import com.userAuthentication.service.HomeManager;
 import com.userAuthentication.service.JWTService;
 import com.userAuthentication.service.redis.RedisService;
 import com.userAuthentication.service.utility.TransportUtils;
+import com.userAuthentication.utility.JsonUtils;
 import com.userAuthentication.utility.ResponseUtility;
 import com.userAuthentication.utility.TokenGenerator;
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,52 +55,67 @@ public class HomeManagerImpl implements HomeManager {
     @Autowired
     private CommunicationService communicationService;
 
-    /**
-     * The `login` function in Java handles user authentication by checking the password with SHA encryption and generating
-     * an OTP for verification.
-     *
-     * @param loginRequest The `loginRequest` parameter in the `login` method contains information required for user
-     * authentication, such as the username, password, and SHA-encrypted password. It is used to validate the user's
-     * credentials during the login process. The method checks if the provided username exists in the system and then
-     * compares
-     * @param httpRequest The `httpRequest` parameter in the `login` method is of type `HttpServletRequest`. This parameter
-     * is used to access information about the HTTP request that triggered the login operation. It can provide details such
-     * as request headers, parameters, and other information related to the incoming HTTP request. This information can be
-     * @return The method `login` returns a `BaseResponse` object.
-     */
     @Override
-    public BaseResponse login(LoginRequest loginRequest, HttpServletRequest httpRequest) throws Exception {
+    public BaseResponse login(EncryptedPayload encryptedPayload, HttpServletRequest httpRequest) throws Exception {
         logger.info("Inside login request");
         LoginResponse loginResponse = new LoginResponse();
+        LoginRequest loginRequest = null;
+        Collection<Error> errors = new ArrayList<>();
+        BaseResponse baseResponse = null;
         try {
-            //Check password is correct or not with SHA encryption
-            UserRegistry userRegistry = mongoService.getUserByUsername(loginRequest.getUserName());
-            logger.info("UserRegistry is {}", userRegistry);
+            //Decrypt payload
+            String decryptedPayload = EncryptDecryptService.decryptPayload(encryptedPayload.getEncryptedPayload());
+            if (StringUtils.isNoneBlank(decryptedPayload)) {
+                loginRequest = JsonUtils.parseJson(decryptedPayload, LoginRequest.class);
 
-            if (userRegistry == null) {
-                loginResponse.setResponse("No User found against provided username");
-                return ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, loginResponse);
-            }
+                if (null == loginRequest) {
+                    logger.error(ErrorCodes.LOGIN_BAD_REQUEST);
+                    errors.add(Error.builder()
+                            .message(ErrorCodes.LOGIN_BAD_REQUEST)
+                            .errorCode(String.valueOf(Error.ERROR_TYPE.BAD_REQUEST.toCode()))
+                            .errorType(Error.ERROR_TYPE.BAD_REQUEST.toValue())
+                            .level(Error.SEVERITY.HIGH.name())
+                            .build());
+                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                } else {
+                    //Check password is correct or not with SHA encryption
+                    UserRegistry userRegistry = mongoService.getUserByUsernameorEmailAndProduct(loginRequest.getUserIdentifier(), loginRequest.getUserIdentifier(), loginRequest.getProductName().getName());
+                    logger.info("UserRegistry is {}", userRegistry);
 
-            String decryptedPassword = EncryptDecryptService.decryptedTextOrReturnSame(userRegistry.getPassword());
+                    if (userRegistry == null) {
+                        loginResponse.setResponse("No User found against provided username");
+                        return ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, loginResponse);
+                    }
 
-            String encryptedPassword = ResponseUtility.encryptThisString(decryptedPassword);
+                    String decryptedPassword = EncryptDecryptService.decryptedTextOrReturnSame(userRegistry.getPassword());
 
-            if (StringUtils.equalsIgnoreCase(encryptedPassword, loginRequest.getShaPassword())) {
-                //send Otp to registered email for 2FA
-                send2FAOtp(loginResponse, userRegistry);
-                return ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
+                    if (EncryptDecryptService.checkPassword(decryptedPassword, loginRequest.getShaPassword())) {
+                        //send Otp to registered email for 2FA
+                        send2FAOtp(loginResponse, userRegistry);
+                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
+                    } else {
+                        loginResponse.setResponse("Invalid Credentials");
+                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, loginResponse);
+                    }
+                }
             } else {
-                loginResponse.setResponse("Invalid Credentials");
-                return ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, loginResponse);
+                logger.error("Error occurred while decrypting the payload");
+                errors.add(Error.builder()
+                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
+                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
+                        .level(Error.SEVERITY.HIGH.name())
+                        .build());
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
             }
 
         } catch (Exception ex) {
             Error error = new Error();
             error.setMessage(ex.getMessage());
             logger.error("Exception occurred while login due to - ", ex);
-            return ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
         }
+        return baseResponse;
     }
 
     private void send2FAOtp(LoginResponse loginResponse, UserRegistry userRegistry) {
@@ -394,61 +410,6 @@ public class HomeManagerImpl implements HomeManager {
         return success;
     }
 
-//    @Override
-//    public BaseResponse sendForgotOtp(EmailOtpRequest emailOtpRequest) throws Exception {
-//        logger.info("Inside sendOtp method...");
-//        StopWatch stopWatch = new StopWatch();
-//        stopWatch.start();
-//
-//        BaseResponse baseResponse = null;
-//        MailRequest mailRequest = new MailRequest();
-//        MailResponse mailResponse = new MailResponse();
-//        EmailReqResLog emailReqResLog = new EmailReqResLog();
-//        EmailOtpResponse emailOtpResponse = new EmailOtpResponse();
-//
-//        try {
-//            EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(emailOtpRequest.getEmailType(), emailOtpRequest.getProductName(), emailOtpRequest.isOtpRequired());
-//
-//            if (emailConfiguration == null) {
-//                return ResponseUtility.getBaseResponse(HttpStatus.NO_CONTENT, Constants.CONF_NOT_FOUND);
-//            }
-//            if (!mongoService.checkExistenceWithEmail(emailOtpRequest.getEmailId())) {
-//                return ResponseUtility.getBaseResponse(HttpStatus.CONFLICT, "No User Found with email: " + emailOtpRequest.getEmailId());
-//            }
-//
-//            //Check email flooding
-//            if (checkEmailFlooding(emailOtpRequest,emailConfiguration.getOtpMaxLimit())) {
-//                return limitExhausted(emailOtpRequest.getEmailId());
-//            }
-//            String otp = ResponseUtility.generateOtpAgainstLength(6);
-//
-//            getEmailTextByType(emailConfiguration, emailOtpRequest.getEmailId(), mailRequest, otp);
-//            settingEmailReqResLog(emailReqResLog, otp, mailRequest, emailOtpRequest);
-//
-//
-//            mailResponse = (MailResponse) TransportUtils.postJsonRequest(mailRequest, connectorEmailSendUrl, MailResponse.class);
-//
-//            logger.info("Mail Response : {}", mailResponse);
-//            if (mailResponse != null) {
-//                emailReqResLog.setMailResponse(mailResponse);
-//                if (mailResponse.getStatus().equalsIgnoreCase(Constants.SUCCESS)) {
-//                    emailOtpResponse.setSuccess(true);
-//                }
-//            }
-//
-//        } catch (Exception ex) {
-//            Error error = new Error();
-//            error.setMessage(ex.getMessage());
-//            logger.error("Exception occurred while sending otp due to - ", ex);
-//            emailOtpResponse.setErrors(new Error[] {error});
-//        } finally {
-//            stopWatch.stop();
-//            emailReqResLog.setApiTimeTaken(stopWatch.getLastTaskTimeMillis());
-//            mongoService.saveEmailResResLog(emailReqResLog);
-//            emailOtpResponse.setOtp(emailReqResLog.getId());
-//        }
-//        return ResponseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
-//    }
 
     private void settingEmailReqResLog(EmailReqResLog emailReqResLog, String otp, MailRequest mailRequest, EmailOtpRequest emailOtpRequest) {
         emailReqResLog.setOtp(otp);
@@ -779,6 +740,7 @@ public class HomeManagerImpl implements HomeManager {
                     } else {
                         emailOtpResponse.setSuccess(true);
                         emailOtpResponse.setOtp(TokenGenerator.generateHexString(24));
+                        emailOtpResponse.setMessage(Constants.FURTHER_INSTRUCTION_SENT_ON_EMAIL);
                         baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
                     }
                 }
