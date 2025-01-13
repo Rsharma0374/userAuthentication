@@ -74,7 +74,7 @@ public class CommunicationServiceImpl implements CommunicationService {
             }
             String otp = ResponseUtility.generateOtpAgainstLength(6);
 
-            getEmailTextByType(emailConfiguration, emailOtpRequest.getEmailId(), mailRequest, otp, null);
+            getEmailTextByType(emailConfiguration, emailOtpRequest.getEmailId(), mailRequest, otp, emailOtpRequest.getAdditionalInfo());
             settingEmailReqResLog(emailReqResLog, otp, mailRequest, emailOtpRequest);
 
 
@@ -152,12 +152,16 @@ public class CommunicationServiceImpl implements CommunicationService {
         String fullName = null != requestData ? requestData.get(Constants.FULL_NAME) : FieldSeparator.BLANK;
         String password = null != requestData ? requestData.get(Constants.PASSWORD) : FieldSeparator.BLANK;
         switch (emailType) {
-            case "EMAIL_VERIFICATION", "EMAIL_OTP_SMS", "2FA_OTP", "FORGOT_PASSWORD_OTP" -> {
+            case "EMAIL_VERIFICATION", "EMAIL_OTP_SMS", "FORGOT_PASSWORD_OTP" -> {
                 smsContent = emailConfiguration.getFormattedSMSText(otp);
             }
 
             case Constants.RESET_PASSWORD -> {
                 smsContent = emailConfiguration.getFormattedSMSText(fullName, password);
+            }
+
+            case "2FA_OTP" -> {
+                smsContent = emailConfiguration.getFormattedSMSText(fullName, otp);
             }
             default -> {
                 // by default email content will be null
@@ -337,7 +341,7 @@ public class CommunicationServiceImpl implements CommunicationService {
     }
 
     private BaseResponse createAndSendPasswordMail(String emailId, String productName, ValidateOtpResponse validateOtpResponse) throws Exception {
-        UserRegistry userCreation = mongoService.getUserByUsernameorEmailAndProduct(FieldSeparator.BLANK, emailId, productName);
+        UserRegistry userRegistry = mongoService.getUserByUsernameorEmailAndProduct(FieldSeparator.BLANK, emailId, productName);
         MailRequest mailRequest = new MailRequest();
         MailResponse mailResponse = new MailResponse();
         BaseResponse baseResponse = null;
@@ -345,7 +349,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         Collection<Error> errors = new ArrayList<>();
 
         try {
-            if (null != userCreation) {
+            if (null != userRegistry) {
                 String password = ResponseUtility.generateStringAgainstLength(10);
                 mongoService.updatePasswordByEmailAndProduct(emailId, password, productName);
 
@@ -354,7 +358,7 @@ public class CommunicationServiceImpl implements CommunicationService {
                     return ResponseUtility.getBaseResponse(HttpStatus.NO_CONTENT, ResponseUtility.mandatoryConfigurationError());
                 }
                 Map<String, String> requestData = new HashMap<>();
-                requestData.put(Constants.FULL_NAME, userCreation.getFullName());
+                requestData.put(Constants.FULL_NAME, userRegistry.getFullName());
                 requestData.put(Constants.PASSWORD, password);
                 getEmailTextByType(emailConfiguration, emailId, mailRequest, null, requestData);
                 //To-do set EmailReqResLog

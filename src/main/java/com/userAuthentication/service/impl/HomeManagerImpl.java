@@ -83,19 +83,29 @@ public class HomeManagerImpl implements HomeManager {
                     logger.info("UserRegistry is {}", userRegistry);
 
                     if (userRegistry == null) {
-                        loginResponse.setResponse("No User found against provided username");
-                        return ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, loginResponse);
+                        errors.add(Error.builder()
+                                .message("No User found against provided data")
+                                .errorCode(String.valueOf(Error.ERROR_TYPE.DATABASE.toCode()))
+                                .errorType(Error.ERROR_TYPE.DATABASE.toValue())
+                                .level(Error.SEVERITY.HIGH.name())
+                                .build());
+                        return ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                     }
 
                     String decryptedPassword = EncryptDecryptService.decryptedTextOrReturnSame(userRegistry.getPassword());
 
                     if (EncryptDecryptService.checkPassword(decryptedPassword, loginRequest.getShaPassword())) {
                         //send Otp to registered email for 2FA
-                        send2FAOtp(loginResponse, userRegistry);
+                        send2FAOtp(loginResponse, userRegistry, loginRequest.getProductName());
                         baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
                     } else {
-                        loginResponse.setResponse("Invalid Credentials");
-                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, loginResponse);
+                        errors.add(Error.builder()
+                                .message("Invalid Credentials")
+                                .errorCode(String.valueOf(Error.ERROR_TYPE.DATABASE.toCode()))
+                                .errorType(Error.ERROR_TYPE.DATABASE.toValue())
+                                .level(Error.SEVERITY.HIGH.name())
+                                .build());
+                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                     }
                 }
             } else {
@@ -118,21 +128,26 @@ public class HomeManagerImpl implements HomeManager {
         return baseResponse;
     }
 
-    private void send2FAOtp(LoginResponse loginResponse, UserRegistry userRegistry) {
+    private void send2FAOtp(LoginResponse loginResponse, UserRegistry userRegistry, ProductName productName) {
         logger.debug("Inside send 2FA otp.");
         try {
             EmailOtpRequest emailOtpRequest = new EmailOtpRequest();
             emailOtpRequest.setEmailId(userRegistry.getEmailId());
             emailOtpRequest.setOtpRequired(true);
-//            emailOtpRequest.setProductName(userRegistry.getPro);
+            emailOtpRequest.setProductName(productName);
             emailOtpRequest.setEmailType("2FA_OTP");
-            BaseResponse baseResponse = sendEmailOtp(emailOtpRequest);
+            Map<String, String> additionalInfo = new HashMap<>();
+            emailOtpRequest.setAdditionalInfo(additionalInfo);
+            additionalInfo.put(Constants.FULL_NAME, userRegistry.getFullName());
+
+            BaseResponse baseResponse = communicationService.sendEmailOtp(emailOtpRequest);
             logger.warn("BaseResponse received is {}", baseResponse);
             if (null != baseResponse && null != baseResponse.getPayload() && null != baseResponse.getPayload().getT()) {
                 EmailOtpResponse emailOtpResponse = (EmailOtpResponse) baseResponse.getPayload().getT();
                 if (emailOtpResponse.isSuccess()) {
                     loginResponse.setOtpToken(emailOtpResponse.getOtp());
-                    loginResponse.setResponse("Access Granted");
+                    loginResponse.setResponse(Constants.FURTHER_INSTRUCTION_SENT_ON_EMAIL);
+                    loginResponse.setStatus(StatusConstant.SUCCESS.name());
                 } else {
                     loginResponse.setResponse("Sending OTP failed. Please contact system administrator.");
                 }
@@ -718,7 +733,7 @@ public class HomeManagerImpl implements HomeManager {
                 // Convert the decrypted string to a Java class
                 ObjectMapper objectMapper = new ObjectMapper();
                 ForgotPasswordRequest forgotPasswordRequest = objectMapper.readValue(decryptedPayload, ForgotPasswordRequest.class);
-                if (null == forgotPasswordRequest || (StringUtils.isBlank(forgotPasswordRequest.getEmailId()) && StringUtils.isBlank(forgotPasswordRequest.getUsername()))) {
+                if (null == forgotPasswordRequest || StringUtils.isBlank(forgotPasswordRequest.getUserIdentifier())) {
                     logger.error(ErrorCodes.FORGOT_PASSWORD_BAD_REQUEST);
                     errors.add(Error.builder()
                             .message(ErrorCodes.FORGOT_PASSWORD_BAD_REQUEST)
@@ -728,10 +743,10 @@ public class HomeManagerImpl implements HomeManager {
                             .build());
                     baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                 } else {
-                    UserRegistry userRegistry = mongoService.getUserByUsernameorEmailAndProduct(forgotPasswordRequest.getUsername(), forgotPasswordRequest.getEmailId(), forgotPasswordRequest.getProductName().getName());
+                    UserRegistry userRegistry = mongoService.getUserByUsernameorEmailAndProduct(forgotPasswordRequest.getUserIdentifier(), forgotPasswordRequest.getUserIdentifier(), forgotPasswordRequest.getProductName().getName());
                     if (null!= userRegistry) {
                         EmailOtpRequest emailOtpRequest = new EmailOtpRequest();
-                        emailOtpRequest.setEmailId(forgotPasswordRequest.getEmailId());
+                        emailOtpRequest.setEmailId(userRegistry.getEmailId());
                         emailOtpRequest.setProductName(forgotPasswordRequest.getProductName());
                         emailOtpRequest.setOtpRequired(true);
                         emailOtpRequest.setEmailType("FORGOT_PASSWORD_OTP");

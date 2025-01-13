@@ -11,11 +11,8 @@ import lombok.ToString;
 @NoArgsConstructor
 public class ForgotPasswordRequest {
 
-    @JsonProperty("sEmailId")
-    private String emailId;
-
-    @JsonProperty("sUsername")
-    private String username;
+    @JsonProperty("sUserIdentifier")
+    private String userIdentifier;
 
     @JsonProperty("sProductName")
     private ProductName productName;

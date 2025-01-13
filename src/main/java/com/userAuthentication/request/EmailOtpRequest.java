@@ -5,6 +5,8 @@ import com.userAuthentication.constant.ProductName;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.Map;
+
 @Data
 @ToString
 public class EmailOtpRequest {
@@ -20,5 +22,7 @@ public class EmailOtpRequest {
 
     @JsonProperty("bOtpRequired")
     private boolean otpRequired;
+
+    Map<String, String> additionalInfo;
 
 }
