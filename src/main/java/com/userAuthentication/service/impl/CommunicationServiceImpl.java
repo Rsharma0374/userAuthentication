@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 
 import javax.validation.constraints.NotNull;
@@ -351,7 +352,8 @@ public class CommunicationServiceImpl implements CommunicationService {
         try {
             if (null != userRegistry) {
                 String password = ResponseUtility.generateStringAgainstLength(10);
-                mongoService.updatePasswordByEmailAndProduct(emailId, password, productName);
+                String hashedPassword = EncryptDecryptService.encryptText(password);
+                mongoService.updatePasswordByEmailAndProduct(emailId, hashedPassword, productName);
 
                 EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(Constants.RESET_PASSWORD, productName, false);
                 if (null == emailConfiguration) {
