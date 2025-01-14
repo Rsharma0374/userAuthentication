@@ -11,7 +11,7 @@ public interface CommunicationService {
 
     BaseResponse sendEmailOtp(@NotNull EmailOtpRequest emailOtpRequest);
 
-    BaseResponse validateEmailOtp(@NotNull ValidateOtpRequest validateOtpRequest);
+    BaseResponse validateEmailOtp(@NotNull EncryptedPayload encryptedPayload);
 
     BaseResponse validateOtpResetPassword(@NotNull EncryptedPayload encryptedPayload);
 }

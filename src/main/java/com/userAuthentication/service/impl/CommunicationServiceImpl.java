@@ -12,7 +12,6 @@ import com.userAuthentication.model.email.MailResponse;
 import com.userAuthentication.model.user.UserRegistry;
 import com.userAuthentication.request.EmailOtpRequest;
 import com.userAuthentication.request.EncryptedPayload;
-import com.userAuthentication.request.UserCreation;
 import com.userAuthentication.request.ValidateOtpRequest;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.response.Error;
@@ -25,14 +24,12 @@ import com.userAuthentication.service.redis.RedisService;
 import com.userAuthentication.service.utility.TransportUtils;
 import com.userAuthentication.utility.JsonUtils;
 import com.userAuthentication.utility.ResponseUtility;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 
 import javax.validation.constraints.NotNull;
@@ -185,58 +182,84 @@ public class CommunicationServiceImpl implements CommunicationService {
     }
 
     @Override
-    public BaseResponse validateEmailOtp(@NotNull ValidateOtpRequest validateOtpRequest) {
+    public BaseResponse validateEmailOtp(@NotNull EncryptedPayload encryptedPayload) {
         logger.info("Inside validateEmailOtp");
         int attemptCount = 0;
         boolean isAttemptValid = false;
         LoginResponse loginResponse = new LoginResponse();
         BaseResponse baseResponse = null;
-        EmailReqResLog emailReqResLog = mongoService.getEmailReqResLogByOtpId(validateOtpRequest.getOtpId());
+        ValidateOtpRequest validateOtpRequest;
         Collection<Error> errors = new ArrayList<>();
+        EmailReqResLog emailReqResLog = null;
         try {
-            if (null != emailReqResLog && StringUtils.equalsIgnoreCase(emailReqResLog.getOtp(), validateOtpRequest.getOtp())) {
-                isAttemptValid = true;
-                attemptCount = emailReqResLog.getTotalAttempt() + 1;
+            String decryptedPayload= EncryptDecryptService.decryptPayload(encryptedPayload.getEncryptedPayload());
+            if (StringUtils.isNoneBlank(decryptedPayload)) {
+                validateOtpRequest = JsonUtils.parseJson(decryptedPayload, ValidateOtpRequest.class);
+                if (null == validateOtpRequest) {
+                    logger.error(ErrorCodes.VALIDATE_OTP_BAD_REQUEST);
+                    errors.add(Error.builder()
+                            .message(ErrorCodes.VALIDATE_OTP_BAD_REQUEST)
+                            .errorCode(String.valueOf(Error.ERROR_TYPE.BAD_REQUEST.toCode()))
+                            .errorType(Error.ERROR_TYPE.BAD_REQUEST.toValue())
+                            .level(Error.SEVERITY.HIGH.name())
+                            .build());
+                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                } else {
+                    emailReqResLog = mongoService.getEmailReqResLogByOtpId(validateOtpRequest.getOtpId());
+                    if (null != emailReqResLog && StringUtils.equalsIgnoreCase(emailReqResLog.getOtp(), validateOtpRequest.getOtp())) {
+                        isAttemptValid = true;
+                        attemptCount = emailReqResLog.getTotalAttempt() + 1;
 
-                if (attemptCount <= 3) {
+                        if (attemptCount <= 3) {
 
-                    long actualTime = emailReqResLog.getDateTime().getTime();
-                    long currentTime = System.currentTimeMillis();
-                    long difference = Math.abs(currentTime - actualTime);
+                            long actualTime = emailReqResLog.getDateTime().getTime();
+                            long currentTime = System.currentTimeMillis();
+                            long difference = Math.abs(currentTime - actualTime);
 
-                    if (difference < 2 * 60 * 1000) {
-                        loginResponse.setStatus(StatusConstant.SUCCESS.name());
-                        loginResponse.setResponse("One time password has been verified successfully.");
-                        loginResponse.setEncryptedValue(ResponseUtility.encryptThisString(validateOtpRequest.getOtp() + validateOtpRequest.getOtpId()));
-                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
+                            if (difference < 2 * 60 * 1000) {
+                                loginResponse.setStatus(StatusConstant.SUCCESS.name());
+                                loginResponse.setResponse("One time password has been verified successfully.");
+                                loginResponse.setEncryptedValue(ResponseUtility.encryptThisString(validateOtpRequest.getOtp() + validateOtpRequest.getOtpId()));
+                                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
+                            } else {
+                                errors.add(Error.builder()
+                                        .message(ErrorCodes.OTP_EXPIRED)
+                                        .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
+                                        .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                                        .level(Error.SEVERITY.LOW.name())
+                                        .build());
+                                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.GONE, errors);
+                            }
+
+                        } else {
+                            errors.add(Error.builder()
+                                    .message(ErrorCodes.OTP_VALIDATE_LIMIT_REACHED)
+                                    .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
+                                    .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                                    .level(Error.SEVERITY.LOW.name())
+                                    .build());
+                            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.TOO_MANY_REQUESTS, errors);
+                        }
+
                     } else {
                         errors.add(Error.builder()
-                                .message(ErrorCodes.OTP_EXPIRED)
+                                .message(ErrorCodes.OTP_VERIFICATION_FAILED)
                                 .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
                                 .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
                                 .level(Error.SEVERITY.LOW.name())
                                 .build());
-                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.GONE, errors);
+                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                     }
-
-                } else {
-                    errors.add(Error.builder()
-                            .message(ErrorCodes.OTP_VALIDATE_LIMIT_REACHED)
-                            .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
-                            .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
-                            .level(Error.SEVERITY.LOW.name())
-                            .build());
-                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.TOO_MANY_REQUESTS, errors);
                 }
-
             } else {
+                logger.error("Error occurred while decrypting the payload");
                 errors.add(Error.builder()
-                        .message(ErrorCodes.OTP_VERIFICATION_FAILED)
-                        .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
-                        .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
-                        .level(Error.SEVERITY.LOW.name())
+                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
+                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
+                        .level(Error.SEVERITY.HIGH.name())
                         .build());
-                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
             }
 
         } catch (Exception e) {

@@ -96,8 +96,7 @@ public class HomeManagerImpl implements HomeManager {
 
                     if (EncryptDecryptService.checkPassword(decryptedPassword, loginRequest.getShaPassword())) {
                         //send Otp to registered email for 2FA
-                        send2FAOtp(loginResponse, userRegistry, loginRequest.getProductName());
-                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
+                        baseResponse = send2FAOtp(loginResponse, userRegistry, loginRequest.getProductName());
                     } else {
                         errors.add(Error.builder()
                                 .message("Invalid Credentials")
@@ -128,8 +127,9 @@ public class HomeManagerImpl implements HomeManager {
         return baseResponse;
     }
 
-    private void send2FAOtp(LoginResponse loginResponse, UserRegistry userRegistry, ProductName productName) {
+    private BaseResponse send2FAOtp(LoginResponse loginResponse, UserRegistry userRegistry, ProductName productName) {
         logger.debug("Inside send 2FA otp.");
+        BaseResponse baseResponse = null;
         try {
             EmailOtpRequest emailOtpRequest = new EmailOtpRequest();
             emailOtpRequest.setEmailId(userRegistry.getEmailId());
@@ -140,7 +140,7 @@ public class HomeManagerImpl implements HomeManager {
             emailOtpRequest.setAdditionalInfo(additionalInfo);
             additionalInfo.put(Constants.FULL_NAME, userRegistry.getFullName());
 
-            BaseResponse baseResponse = communicationService.sendEmailOtp(emailOtpRequest);
+            baseResponse = communicationService.sendEmailOtp(emailOtpRequest);
             logger.warn("BaseResponse received is {}", baseResponse);
             if (null != baseResponse && null != baseResponse.getPayload() && null != baseResponse.getPayload().getT()) {
                 EmailOtpResponse emailOtpResponse = (EmailOtpResponse) baseResponse.getPayload().getT();
@@ -148,16 +148,14 @@ public class HomeManagerImpl implements HomeManager {
                     loginResponse.setOtpToken(emailOtpResponse.getOtp());
                     loginResponse.setResponse(Constants.FURTHER_INSTRUCTION_SENT_ON_EMAIL);
                     loginResponse.setStatus(StatusConstant.SUCCESS.name());
-                } else {
-                    loginResponse.setResponse("Sending OTP failed. Please contact system administrator.");
+                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
                 }
-            } else {
-                loginResponse.setResponse("Sending OTP failed. Please contact system administrator.");
             }
-
         } catch (Exception e) {
             logger.error("Exception occurred while sending 2FA otp with probable cause - ", e);
+            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(e));
         }
+        return baseResponse;
     }
 
 //    /**

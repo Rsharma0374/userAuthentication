@@ -37,11 +37,11 @@ public class CommunicationController {
     }
 
     @PostMapping(EndPointReferrer.VALIDATE_EMAIL_OTP)
-    private ResponseEntity<BaseResponse> validateEmailOtp(@RequestBody @NotNull ValidateOtpRequest validateOtpRequest) {
+    private ResponseEntity<BaseResponse> validateEmailOtp(@RequestBody @NotNull EncryptedPayload encryptedPayload) {
 
         logger.debug(Constants.CONTROLLER_STARTED, EndPointReferrer.VALIDATE_EMAIL_OTP);
 
-        return new ResponseEntity<>(communicationService.validateEmailOtp(validateOtpRequest), HttpStatus.OK);
+        return new ResponseEntity<>(communicationService.validateEmailOtp(encryptedPayload), HttpStatus.OK);
 
     }
 
