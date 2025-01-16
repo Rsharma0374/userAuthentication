@@ -1,6 +1,7 @@
 package com.userAuthentication.service;
 
 import com.userAuthentication.service.redis.RedisService;
+import com.userAuthentication.utility.TokenGenerator;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -50,7 +51,7 @@ public class JWTService {
                 .and()
                 .signWith(getKey())
                 .compact();
-        String opaqueToken = UUID.randomUUID().toString().replace("-", " ");
+        String opaqueToken = TokenGenerator.generateHexString(40);
 
         redisService.setValueInRedisWithExpiration(opaqueToken, jwtToken, (60 * 60 * 30), TimeUnit.SECONDS);
         return opaqueToken;

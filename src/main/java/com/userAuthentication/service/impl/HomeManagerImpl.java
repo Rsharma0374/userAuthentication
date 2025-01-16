@@ -351,62 +351,50 @@ public class HomeManagerImpl implements HomeManager {
     }
 
     @Override
-    public BaseResponse validate2faOtp(ValidateOtpRequest validateOtpRequest) {
+    public BaseResponse validate2faOtp(EncryptedPayload encryptedPayload) {
         logger.info("Inside validate 2Fa Otp");
-        int attemptCount = 0;
-        boolean isAttemptValid = false;
         LoginResponse loginResponse = new LoginResponse();
-        EmailReqResLog emailReqResLog = mongoService.getEmailReqResLogByOtpId(validateOtpRequest.getOtpId());
+        ValidateOtpRequest validateOtpRequest = null;
+        BaseResponse baseResponse = null;
+        Collection<Error> errors = new ArrayList<>();
         try {
-            if (null != emailReqResLog && StringUtils.equalsIgnoreCase(emailReqResLog.getOtp(), validateOtpRequest.getOtp())) {
-                isAttemptValid = true;
-                attemptCount = emailReqResLog.getTotalAttempt() + 1;
-
-                if (attemptCount <= 3) {
-
-                    long actualTime = emailReqResLog.getDateTime().getTime();
-                    long currentTime = System.currentTimeMillis();
-                    long difference = Math.abs(currentTime - actualTime);
-
-                    if (difference < 2 * 60 * 1000) {
-                        loginResponse.setStatus("SUCCESS");
-                        loginResponse.setResponse("One time password has been verified successfully .");
-                        loginResponse.setEncryptedValue(ResponseUtility.encryptThisString(validateOtpRequest.getOtp() + validateOtpRequest.getOtpId()));
-                        loginResponse.setToken(jwtService.generateToken(validateOtpRequest.getUserName()));
-
-                    } else {
-                        loginResponse.setResponse("One time passord has been expired . Please request new one time password.");
-                        loginResponse.setStatus("FAILED");
-                    }
-
+            String decryptedPayload= EncryptDecryptService.decryptPayload(encryptedPayload.getEncryptedPayload());
+            if (StringUtils.isNoneBlank(decryptedPayload)) {
+                validateOtpRequest = JsonUtils.parseJson(decryptedPayload, ValidateOtpRequest.class);
+                if (null == validateOtpRequest) {
+                    logger.error(ErrorCodes.VALIDATE_OTP_BAD_REQUEST);
+                    errors.add(Error.builder()
+                            .message(ErrorCodes.VALIDATE_OTP_BAD_REQUEST)
+                            .errorCode(String.valueOf(Error.ERROR_TYPE.BAD_REQUEST.toCode()))
+                            .errorType(Error.ERROR_TYPE.BAD_REQUEST.toValue())
+                            .level(Error.SEVERITY.HIGH.name())
+                            .build());
+                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                 } else {
-                    loginResponse.setResponse("Maximum OTP limit reached, please request new OTP");
-                    loginResponse.setStatus("FAILED");
+                    baseResponse = communicationService.validateEmailOtp(encryptedPayload);
+                    if (null != baseResponse && null != baseResponse.getPayload() && null != baseResponse.getPayload().getT()) {
+                        loginResponse = (LoginResponse) baseResponse.getPayload().getT();
+                        loginResponse.setToken(jwtService.generateToken(validateOtpRequest.getUserName()));
+                    }
                 }
-
             } else {
-                Collection<Error> errors = new ArrayList<>();
+                logger.error("Error occurred while decrypting the payload");
                 errors.add(Error.builder()
-                        .message("OTP verification failed")
-                        .errorCode(String.valueOf(Error.ERROR_TYPE.BUSINESS.toCode()))
-                        .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
-                        .level(Error.SEVERITY.LOW.name())
+                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
+                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
+                        .level(Error.SEVERITY.HIGH.name())
                         .build());
-                return ResponseUtility.getBaseResponse(HttpStatus.FAILED_DEPENDENCY, errors);
+                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
             }
 
         } catch (Exception e) {
             logger.error("Exception occurred while validating 2FA otp with probable cause - ", e);
             Error error = new Error();
             error.setMessage(e.getMessage());
-            return ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
-        } finally {
-            if (isAttemptValid) {
-                emailReqResLog.setTotalAttempt(attemptCount);
-                mongoService.saveEmailOtpReqRes(emailReqResLog);
-            }
+            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
         }
-        return ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
+        return baseResponse;
     }
 
     private boolean createAndSaveUserDetails(UserCreation userCreation) {

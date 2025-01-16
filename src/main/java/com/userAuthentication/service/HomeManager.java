@@ -17,7 +17,7 @@ public interface HomeManager {
 
     BaseResponse sendEmailOtp(EmailOtpRequest emailOtpRequest);
 
-    BaseResponse validate2faOtp(ValidateOtpRequest validateOtpRequest);
+    BaseResponse validate2faOtp(EncryptedPayload encryptedPayload);
 
     BaseResponse logout(LogoutRequest logoutRequest, HttpServletRequest httpServletRequest);
 

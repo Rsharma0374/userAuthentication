@@ -55,11 +55,11 @@ public class AuthController {
 
     @PostMapping(EndPointReferrer.VALIDATE_2FA_OTP)
     public ResponseEntity<BaseResponse> validate2faOtp(
-            @RequestBody @NotNull ValidateOtpRequest validateOtpRequest) {
+            @RequestBody @NotNull EncryptedPayload encryptedPayload) {
         try {
             logger.info(Constants.CONTROLLER_STARTED,EndPointReferrer.VALIDATE_2FA_OTP);
 
-            return new ResponseEntity<>(homeManager.validate2faOtp(validateOtpRequest), HttpStatus.OK);
+            return new ResponseEntity<>(homeManager.validate2faOtp(encryptedPayload), HttpStatus.OK);
 
         } catch (Exception e) {
             logger.error("Exception occurred in request with cause - ", e);

@@ -219,7 +219,7 @@ public class CommunicationServiceImpl implements CommunicationService {
                             if (difference < 2 * 60 * 1000) {
                                 loginResponse.setStatus(StatusConstant.SUCCESS.name());
                                 loginResponse.setResponse("One time password has been verified successfully.");
-                                loginResponse.setEncryptedValue(ResponseUtility.encryptThisString(validateOtpRequest.getOtp() + validateOtpRequest.getOtpId()));
+                                loginResponse.setEncryptedValue(ResponseUtility.encryptThisString(emailReqResLog.getOtp() + validateOtpRequest.getOtpId()));
                                 baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
                             } else {
                                 errors.add(Error.builder()
