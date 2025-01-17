@@ -26,6 +26,8 @@ WORKDIR /app
 # Copy the Maven project files to the container
 COPY pom.xml ./
 COPY src ./src
+COPY /opt/configs/emailConnector.properties /opt/configs/emailConnector.properties
+RUN chmod 755 /opt/configs/emailConnector.properties
 
 # Run the Maven build with the production profile
 RUN mvn clean install -P prod
