@@ -41,7 +41,7 @@ public class JWTService {
 
     public String generateToken(String userName) {
         Map<String, Object> claims = new HashMap<>();
-        Date expiryTime = new Date(System.currentTimeMillis() + 60 * 60 * 30);
+        Date expiryTime = new Date(System.currentTimeMillis() + 60 * 60 * 1000);
         String jwtToken = Jwts.builder()
                 .claims()
                 .add(claims)
@@ -53,7 +53,7 @@ public class JWTService {
                 .compact();
         String opaqueToken = TokenGenerator.generateHexString(40);
 
-        redisService.setValueInRedisWithExpiration(opaqueToken, jwtToken, (60 * 60 * 30), TimeUnit.SECONDS);
+        redisService.setValueInRedisWithExpiration(opaqueToken, jwtToken, (60 * 60), TimeUnit.SECONDS);
         return opaqueToken;
     }
 

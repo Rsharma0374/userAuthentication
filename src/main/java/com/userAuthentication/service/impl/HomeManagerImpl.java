@@ -148,6 +148,7 @@ public class HomeManagerImpl implements HomeManager {
                     loginResponse.setOtpToken(emailOtpResponse.getOtp());
                     loginResponse.setResponse(Constants.FURTHER_INSTRUCTION_SENT_ON_EMAIL);
                     loginResponse.setStatus(StatusConstant.SUCCESS.name());
+                    loginResponse.setUsername(userRegistry.getUserName());
                     baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
                 }
             }
