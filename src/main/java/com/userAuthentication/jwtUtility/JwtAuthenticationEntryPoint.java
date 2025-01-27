@@ -27,6 +27,11 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     @SneakyThrows
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+        response(response, authException);
+
+    }
+
+    private void response(HttpServletResponse response, AuthenticationException authException) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
 
@@ -41,6 +46,5 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         baseResponse = ResponseUtility.getBaseResponse(HttpStatus.UNAUTHORIZED, errors);
         // Write the response
         response.getWriter().write(objectMapper.writeValueAsString(baseResponse));
-
     }
 }

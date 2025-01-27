@@ -46,6 +46,9 @@ public class HomeManagerImpl implements HomeManager {
     @Value("${connector.email.send.api}")
     private String connectorEmailSendUrl;
 
+    @Value("${pass.manager.user.create.url}")
+    private String passManagerUserCreateUrl;
+
     @Autowired
     private RedisService redisService;
 
@@ -405,6 +408,10 @@ public class HomeManagerImpl implements HomeManager {
             String encryptedPassword = EncryptDecryptService.encryptText(userCreation.getPassword());
             userRegistry.setPassword(encryptedPassword);
             success = mongoService.saveUserRegistry(userRegistry);
+            if (success && userCreation.getProductName().getName().equalsIgnoreCase(ProductName.PASSWORD_MANAGER.getName())) {
+                //crete user in pass manager
+                TransportUtils.postJsonRequest(userCreation, passManagerUserCreateUrl, BaseResponse.class);
+            }
 
         } catch (Exception e) {
             logger.error("Exception occurred while encrypting password with probable cause - ", e);

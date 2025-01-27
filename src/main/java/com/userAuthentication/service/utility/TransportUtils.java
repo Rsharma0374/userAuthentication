@@ -1,6 +1,7 @@
 package com.userAuthentication.service.utility;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.utility.ResponseUtility;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
@@ -47,6 +48,9 @@ public class TransportUtils {
             // Send the POST request and receive the response
             HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
 
+            if (name == BaseResponse.class) {
+                return ResponseUtility.StringToObject(response.body(), name);
+            }
             String payLoadString = "";
             JSONObject jsonObject = new JSONObject(response.body());
             if (jsonObject.has("oBody")) {

@@ -4,6 +4,7 @@ import com.userAuthentication.constant.Constants;
 import com.userAuthentication.request.*;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.service.HomeManager;
+import com.userAuthentication.utility.ResponseUtility;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,6 +93,12 @@ public class AuthController {
             return new ResponseEntity<>(homeManager.forgotPassword(payload), HttpStatus.OK);
 
 
+    }
+
+    @GetMapping(EndPointReferrer.VALIDATE_TOKEN + "/{token}" )
+    public ResponseEntity<BaseResponse> validateToken(@PathVariable("token") String token) {
+        BaseResponse baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, "Token validated");
+        return new ResponseEntity<>(baseResponse, HttpStatus.OK);
     }
 
 }

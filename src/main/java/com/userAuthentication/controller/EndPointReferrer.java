@@ -28,4 +28,6 @@ public class EndPointReferrer {
 
     public static final String  GET_REDIS_CACHE = "get-redis-cache-by-key/{sKey}";
 
+    public static final String  VALIDATE_TOKEN = "validate-token";
+
 }

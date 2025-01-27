@@ -26,3 +26,10 @@ connector:
   email:
     send:
       api: http://localhost:10002/email-connector/send-mail
+
+
+pass:
+  manager:
+    user:
+      create:
+        url: http://localhost:10003/password-manager/create-user

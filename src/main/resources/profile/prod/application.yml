@@ -20,3 +20,10 @@ connector:
   email:
     send:
       api: https://connector.guardianservices.in/email-connector/send-mail
+
+
+pass:
+  manager:
+    user:
+      create:
+        url: https://passmanager.guardianservices.in/password-manager/create-user
