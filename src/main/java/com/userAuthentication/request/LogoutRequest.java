@@ -1,24 +1,18 @@
 package com.userAuthentication.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.userAuthentication.constant.ProductName;
+import lombok.Data;
+import lombok.ToString;
 
+@Data
+@ToString
 public class LogoutRequest {
 
     @JsonProperty("sUserName")
     private String userName;
 
-    public String getUserName() {
-        return userName;
-    }
+    @JsonProperty("sProductName")
+    private ProductName productName;
 
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    @Override
-    public String toString() {
-        return "LogoutRequest{" +
-                "userName='" + userName + '\'' +
-                '}';
-    }
 }
