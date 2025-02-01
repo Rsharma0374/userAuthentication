@@ -67,7 +67,7 @@ public class CommunicationServiceImpl implements CommunicationService {
             }
 
             //Check email flooding
-            if (checkEmailFlooding(emailOtpRequest, emailConfiguration.getOtpMaxLimit())) {
+            if (emailConfiguration.isLimitCheck() && checkEmailFlooding(emailOtpRequest, emailConfiguration.getOtpMaxLimit())) {
                 return limitExhausted(emailOtpRequest.getEmailId());
             }
             String otp = ResponseUtility.generateOtpAgainstLength(6);

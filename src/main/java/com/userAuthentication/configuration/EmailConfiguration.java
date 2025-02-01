@@ -1,13 +1,16 @@
 package com.userAuthentication.configuration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+import lombok.ToString;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Date;
 
 @Document(collection = "emailConfiguration")
+@Data
+@ToString
 public class EmailConfiguration {
-
 
     @JsonProperty("sEmailType")
     private String emailType;
@@ -36,92 +39,9 @@ public class EmailConfiguration {
     @JsonProperty("dtInsertDate")
     private Date insertDate;
 
-    public String getEmailType() {
-        return emailType;
-    }
+    @JsonProperty("bLimitCheck")
+    private boolean limitCheck;
 
-    public void setEmailType(String emailType) {
-        this.emailType = emailType;
-    }
-
-    public String getProductName() {
-        return productName;
-    }
-
-    public void setProductName(String productName) {
-        this.productName = productName;
-    }
-
-    public String getEmailSubject() {
-        return emailSubject;
-    }
-
-    public void setEmailSubject(String emailSubject) {
-        this.emailSubject = emailSubject;
-    }
-
-    public String getEmailBody() {
-        return emailBody;
-    }
-
-    public void setEmailBody(String emailBody) {
-        this.emailBody = emailBody;
-    }
-
-    public boolean isOtpRequired() {
-        return otpRequired;
-    }
-
-    public void setOtpRequired(boolean otpRequired) {
-        this.otpRequired = otpRequired;
-    }
-
-    public int getOtpMaxLimit() {
-        return otpMaxLimit;
-    }
-
-    public void setOtpMaxLimit(int otpMaxLimit) {
-        this.otpMaxLimit = otpMaxLimit;
-    }
-
-    public String getReceiver() {
-        return receiver;
-    }
-
-    public void setReceiver(String receiver) {
-        this.receiver = receiver;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public Date getInsertDate() {
-        return insertDate;
-    }
-
-    public void setInsertDate(Date insertDate) {
-        this.insertDate = insertDate;
-    }
-
-    @Override
-    public String toString() {
-        return "EmailConfiguration{" +
-                "emailType='" + emailType + '\'' +
-                ", productName='" + productName + '\'' +
-                ", emailSubject='" + emailSubject + '\'' +
-                ", emailBody='" + emailBody + '\'' +
-                ", otpRequired=" + otpRequired +
-                ", otpMaxLimit=" + otpMaxLimit +
-                ", receiver='" + receiver + '\'' +
-                ", active=" + active +
-                ", insertDate=" + insertDate +
-                '}';
-    }
 
     public String getFormattedSMSText(String... args) {
         String formattedSmsText = String.format(this.emailBody, args);
