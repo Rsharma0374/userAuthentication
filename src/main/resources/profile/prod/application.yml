@@ -26,4 +26,4 @@ pass:
   manager:
     user:
       create:
-        url: https://passmanager.guardianservices.in/password-manager/create-user
+        url: https://auth.guardianservices.in/password-manager/create-user
