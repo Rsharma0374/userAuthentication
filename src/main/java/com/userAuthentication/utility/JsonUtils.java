@@ -1,6 +1,7 @@
 package com.userAuthentication.utility;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.userAuthentication.response.BaseResponse;
 import lombok.Data;
 import lombok.ToString;
 import org.slf4j.Logger;
@@ -18,6 +19,15 @@ public class JsonUtils {
             return objectMapper.readValue(json, clazz);
         } catch (Exception e) {
             throw new RuntimeException("Error parsing JSON to " + clazz.getSimpleName(), e);
+        }
+    }
+
+    public static String toString(BaseResponse baseResponse) {
+
+        try {
+            return objectMapper.writeValueAsString(baseResponse);
+        } catch (Exception e) {
+            throw new RuntimeException("Error parsing String with probable cause ", e);
         }
     }
 }

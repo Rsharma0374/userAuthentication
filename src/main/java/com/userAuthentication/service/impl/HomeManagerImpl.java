@@ -14,6 +14,7 @@ import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.response.Error;
 import com.userAuthentication.response.email.EmailOtpResponse;
 import com.userAuthentication.response.login.LoginResponse;
+import com.userAuthentication.security.AESUtil;
 import com.userAuthentication.security.EncryptDecryptService;
 import com.userAuthentication.service.CommunicationService;
 import com.userAuthentication.service.HomeManager;
@@ -58,6 +59,9 @@ public class HomeManagerImpl implements HomeManager {
     @Autowired
     private CommunicationService communicationService;
 
+    @Autowired
+    private ResponseUtility responseUtility;
+
     @Override
     public BaseResponse login(EncryptedPayload encryptedPayload, HttpServletRequest httpRequest) throws Exception {
         logger.info("Inside login request");
@@ -65,9 +69,11 @@ public class HomeManagerImpl implements HomeManager {
         LoginRequest loginRequest = null;
         Collection<Error> errors = new ArrayList<>();
         BaseResponse baseResponse = null;
+        String id = httpRequest.getHeader("sKeyId");
+        String key = (String) redisService.getValueFromRedis(id);
         try {
             //Decrypt payload
-            String decryptedPayload = EncryptDecryptService.decryptPayload(encryptedPayload.getEncryptedPayload());
+            String decryptedPayload = AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
             if (StringUtils.isNoneBlank(decryptedPayload)) {
                 loginRequest = JsonUtils.parseJson(decryptedPayload, LoginRequest.class);
 
@@ -79,7 +85,7 @@ public class HomeManagerImpl implements HomeManager {
                             .errorType(Error.ERROR_TYPE.BAD_REQUEST.toValue())
                             .level(Error.SEVERITY.HIGH.name())
                             .build());
-                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                    baseResponse = responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                 } else {
                     //Check password is correct or not with SHA encryption
                     UserRegistry userRegistry = mongoService.getUserByUsernameorEmailAndProduct(loginRequest.getUserIdentifier(), loginRequest.getUserIdentifier(), loginRequest.getProductName().getName());
@@ -92,7 +98,7 @@ public class HomeManagerImpl implements HomeManager {
                                 .errorType(Error.ERROR_TYPE.DATABASE.toValue())
                                 .level(Error.SEVERITY.HIGH.name())
                                 .build());
-                        return ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                        return responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                     }
 
                     String decryptedPassword = EncryptDecryptService.decryptedTextOrReturnSame(userRegistry.getPassword());
@@ -107,7 +113,7 @@ public class HomeManagerImpl implements HomeManager {
                                 .errorType(Error.ERROR_TYPE.DATABASE.toValue())
                                 .level(Error.SEVERITY.HIGH.name())
                                 .build());
-                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                        baseResponse = responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                     }
                 }
             } else {
@@ -118,14 +124,14 @@ public class HomeManagerImpl implements HomeManager {
                         .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
                         .level(Error.SEVERITY.HIGH.name())
                         .build());
-                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
+                baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
             }
 
         } catch (Exception ex) {
             Error error = new Error();
             error.setMessage(ex.getMessage());
             logger.error("Exception occurred while login due to - ", ex);
-            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+            baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
         }
         return baseResponse;
     }
@@ -152,75 +158,15 @@ public class HomeManagerImpl implements HomeManager {
                     loginResponse.setResponse(Constants.FURTHER_INSTRUCTION_SENT_ON_EMAIL);
                     loginResponse.setStatus(StatusConstant.SUCCESS.name());
                     loginResponse.setUsername(userRegistry.getUserName());
-                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
+                    baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
                 }
             }
         } catch (Exception e) {
             logger.error("Exception occurred while sending 2FA otp with probable cause - ", e);
-            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(e));
+            baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(e));
         }
         return baseResponse;
     }
-
-//    /**
-//     * The `sendVerificationOtp` method sends a verification OTP via email and logs the response and any errors
-//     * encountered.
-//     *
-//     * @param emailOtpRequest The `sendVerificationOtp` method you provided seems to be responsible for sending a
-//     * verification OTP via email. Here's a breakdown of the key steps in the method:
-//     * @return The method `sendVerificationOtp` is returning an `EmailOtpResponse` object.
-//     */
-//    private EmailOtpResponse sendVerificationOtp(EmailOtpRequest emailOtpRequest) throws Exception {
-//        logger.info("Inside sendVerificationOtp method...");
-//        StopWatch stopWatch = new StopWatch();
-//        stopWatch.start();
-//
-//        BaseResponse baseResponse = null;
-//        MailRequest mailRequest = new MailRequest();
-//        MailResponse mailResponse = new MailResponse();
-//        EmailReqResLog emailReqResLog = new EmailReqResLog();
-//        EmailOtpResponse emailOtpResponse = new EmailOtpResponse();
-//        try {
-//            EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(emailOtpRequest.getEmailType(), emailOtpRequest.getProductName(), emailOtpRequest.isOtpRequired());
-//
-//
-//            //Check email flooding
-//            if (!checkEmailFlooding(emailOtpRequest,emailConfiguration.getOtpMaxLimit())) {
-//
-//
-//                String otp = ResponseUtility.generateOtpAgainstLength(6);
-//
-//                getEmailTextByType(emailConfiguration, emailOtpRequest.getEmailId(), mailRequest, otp);
-//                settingEmailReqResLog(emailReqResLog, otp, mailRequest, emailOtpRequest);
-//
-//
-//                mailResponse = (MailResponse) TransportUtils.postJsonRequest(mailRequest, connectorEmailSendUrl, MailResponse.class);
-//
-//                logger.info("Mail Response : {}", mailResponse);
-//                if (mailResponse != null) {
-//                    emailReqResLog.setMailResponse(mailResponse);
-//                    if (mailResponse.getStatus().equalsIgnoreCase(Constants.SUCCESS)) {
-//                        emailOtpResponse.setSuccess(true);
-//                    }
-//                }
-//            } else {
-//                logger.error("Limit exhause for email id {}", emailOtpRequest.getEmailId());
-//            }
-//
-//        } catch (Exception ex) {
-//            Error error = new Error();
-//            error.setMessage(ex.getMessage());
-//            logger.error("Exception occurred while sending otp due to - ", ex);
-//            emailOtpResponse.setErrors(new Error[] {error});
-//        } finally {
-//            stopWatch.stop();
-//            emailReqResLog.setApiTimeTaken(stopWatch.getLastTaskTimeMillis());
-//            mongoService.saveEmailResResLog(emailReqResLog);
-//            emailOtpResponse.setOtp(emailReqResLog.getId());
-//            return emailOtpResponse;
-//        }
-//    }
-//
 
     private void settingToken(LoginResponse loginResponse, String encryptedPassword, String username) throws Exception {
 
@@ -233,12 +179,12 @@ public class HomeManagerImpl implements HomeManager {
         }
         long expiryTime = 1800;
         String redisKey = StringUtils.join(username, FieldSeparator.UNDER_SCORE_STR, ProductName.PASSWORD_MANAGER.getName());
-        Object obj = ResponseUtility.redisObject(username, token, expiryTime, null);
+        Object obj = responseUtility.redisObject(username, token, expiryTime, null);
         //clear any existing key (One session one login)
         redisService.clearKeyFromRedis(username);
         //add the new key
         redisService.setValueInRedisWithExpiration(redisKey, obj, expiryTime, TimeUnit.SECONDS);
-        loginResponse.setServerSideValidation(ResponseUtility.encryptThisString(encryptedPassword + username));
+        loginResponse.setServerSideValidation(responseUtility.encryptThisString(encryptedPassword + username));
 
     }
 
@@ -256,7 +202,7 @@ public class HomeManagerImpl implements HomeManager {
                         .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
                         .level(Error.SEVERITY.LOW.name())
                         .build());
-                return ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                return responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
             }
 
             if (null != mongoService.getUserByUsernameorEmailAndProduct(userCreation.getUserName(), userCreation.getEmail(), userCreation.getProductName().getName())) {
@@ -266,7 +212,7 @@ public class HomeManagerImpl implements HomeManager {
                         .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
                         .level(Error.SEVERITY.LOW.name())
                         .build());
-                return ResponseUtility.getBaseResponse(HttpStatus.CONFLICT, errors);
+                return responseUtility.getBaseResponse(HttpStatus.CONFLICT, errors);
             }
 
             boolean success = createAndSaveUserDetails(userCreation);
@@ -274,7 +220,7 @@ public class HomeManagerImpl implements HomeManager {
             if (success) {
                 genericResponse.setStatus(StatusConstant.SUCCESS.name());
                 genericResponse.setResponseMessage("User Created Successfully");
-                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
+                baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
             } else {
                 genericResponse.setStatus(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()));
                 genericResponse.setResponseMessage("User creation failed.");
@@ -284,13 +230,13 @@ public class HomeManagerImpl implements HomeManager {
                         .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
                         .level(Error.SEVERITY.HIGH.name())
                         .build());
-                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
+                baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
             }
         } catch (Exception ex) {
             Error error = new Error();
             error.setMessage(ex.getMessage());
             logger.error("Exception occurred while user creation due to - ", ex);
-            return ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+            return responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
         }
         return baseResponse;
 
@@ -309,14 +255,14 @@ public class HomeManagerImpl implements HomeManager {
             logger.debug("Email config is {}", emailConfiguration);
 
             if (null == emailConfiguration) {
-                return ResponseUtility.getBaseResponse(HttpStatus.NO_CONTENT, Constants.CONF_NOT_FOUND);
+                return responseUtility.getBaseResponse(HttpStatus.NO_CONTENT, Constants.CONF_NOT_FOUND);
             }
 
             //Check email flooding
             if (checkEmailFlooding(emailOtpRequest, emailConfiguration.getOtpMaxLimit())) {
                 return limitExhausted(emailOtpRequest.getEmailId());
             }
-            String otp = ResponseUtility.generateOtpAgainstLength(6);
+            String otp = responseUtility.generateOtpAgainstLength(6);
 
             getEmailTextByType(emailConfiguration, emailOtpRequest.getEmailId(), mailRequest, otp);
             settingEmailReqResLog(emailReqResLog, otp, mailRequest, emailOtpRequest);
@@ -342,11 +288,11 @@ public class HomeManagerImpl implements HomeManager {
                 error.setErrorCode(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()));
                 emailOtpResponse.setErrors(new Error[]{error});
             }
-            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
+            baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
 
         } catch (Exception e) {
             logger.error("Exception occurred while sending otp with probable cause - ", e);
-            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(e));
+            baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(e));
         } finally {
             mongoService.saveEmailResResLog(emailReqResLog);
             emailOtpResponse.setOtp(emailReqResLog.getId());
@@ -355,14 +301,16 @@ public class HomeManagerImpl implements HomeManager {
     }
 
     @Override
-    public BaseResponse validate2faOtp(EncryptedPayload encryptedPayload) {
+    public BaseResponse validate2faOtp(EncryptedPayload encryptedPayload, HttpServletRequest request) {
         logger.info("Inside validate 2Fa Otp");
         LoginResponse loginResponse = new LoginResponse();
         ValidateOtpRequest validateOtpRequest = null;
         BaseResponse baseResponse = null;
         Collection<Error> errors = new ArrayList<>();
+        String id = request.getHeader("sKeyId");
+        String key = (String) redisService.getValueFromRedis(id);
         try {
-            String decryptedPayload= EncryptDecryptService.decryptPayload(encryptedPayload.getEncryptedPayload());
+            String decryptedPayload= AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
             if (StringUtils.isNoneBlank(decryptedPayload)) {
                 validateOtpRequest = JsonUtils.parseJson(decryptedPayload, ValidateOtpRequest.class);
                 if (null == validateOtpRequest) {
@@ -373,9 +321,9 @@ public class HomeManagerImpl implements HomeManager {
                             .errorType(Error.ERROR_TYPE.BAD_REQUEST.toValue())
                             .level(Error.SEVERITY.HIGH.name())
                             .build());
-                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                    baseResponse = responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                 } else {
-                    baseResponse = communicationService.validateEmailOtp(encryptedPayload);
+                    baseResponse = communicationService.validateEmailOtp(encryptedPayload, request);
                     if (null != baseResponse && null != baseResponse.getPayload() && null != baseResponse.getPayload().getT()) {
                         loginResponse = (LoginResponse) baseResponse.getPayload().getT();
                         loginResponse.setToken(jwtService.generateToken(validateOtpRequest.getUserName()));
@@ -389,14 +337,14 @@ public class HomeManagerImpl implements HomeManager {
                         .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
                         .level(Error.SEVERITY.HIGH.name())
                         .build());
-                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
+                baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
             }
 
         } catch (Exception e) {
             logger.error("Exception occurred while validating 2FA otp with probable cause - ", e);
             Error error = new Error();
             error.setMessage(e.getMessage());
-            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+            baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
         }
         return baseResponse;
     }
@@ -443,7 +391,7 @@ public class HomeManagerImpl implements HomeManager {
 
         emailOtpResponse.setErrors(new Error[]{error});
 
-        return ResponseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
+        return responseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
     }
 
 
@@ -475,254 +423,43 @@ public class HomeManagerImpl implements HomeManager {
         mailRequest.setSubject(emailConfiguration.getEmailSubject());
         mailRequest.setMessage(smsContent);
     }
-//
-//    /**
-//     * This Java function validates an OTP and resets a password, handling various scenarios such as expired OTP or
-//     * incorrect input.
-//     *
-//     * @param validateOtpRequest The `validateOtpAndResetPassword` method takes a `ValidateOtpRequest` object as a
-//     * parameter. This object likely contains information required to validate an OTP (One Time Password) and reset a
-//     * password. The method performs the following steps:
-//     * @return The method `validateOtpAndResetPassword` returns a `BaseResponse` object.
-//     */
-//    @Override
-//    public BaseResponse validateOtpAndResetPassword(ValidateOtpRequest validateOtpRequest) {
-//        BaseResponse baseResponse = null;
-//        ValidateOtpResponse validateOtpResponse = new ValidateOtpResponse();
-//        try {
-//            EmailReqResLog emailReqResLog = mongoService.getEmailReqResLog(validateOtpRequest);
-//            if (null != emailReqResLog) {
-//                if (checkOtpExpiration(emailReqResLog)) {
-//                    if (emailReqResLog.getOtp().equalsIgnoreCase(validateOtpRequest.getOtp())) {
-//                        validateOtpResponse.setSuccess(true);
-//                        validateOtpResponse.setServerSideValidation(ResponseUtility.encryptThisString(emailReqResLog.getOtp() + validateOtpRequest.getOtpId()));
-//                        validateOtpResponse.setMessage("Otp Validated Successfully");
-//                        createAndSendPasswordMail(emailReqResLog.getEmailId(), validateOtpRequest.getProductName());
-//                    } else {
-//                        validateOtpResponse.setSuccess(false);
-//                        validateOtpResponse.setMessage("Incorrect Otp");
-//                    }
-//                } else {
-//                    validateOtpResponse.setSuccess(false);
-//                    validateOtpResponse.setMessage("Otp Expired.");
-//                }
-//                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, validateOtpResponse);
-//            } else {
-//                Error error = new Error();
-//                error.setMessage(Constants.SOMETHING_WENT_WRONG);
-//                error.setErrorType("TECHNICAL ERROR");
-//                error.setErrorCode(HttpStatus.INTERNAL_SERVER_ERROR.toString());
-//                validateOtpResponse.setErrors(new Error[]{error});
-//                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, validateOtpResponse);
-//            }
-//
-//        } catch (Exception ex) {
-//            logger.error("Exception occurred while validation Otp with probable cause - ", ex);
-//
-//            Error error = new Error();
-//            error.setMessage(ex.getMessage());
-//            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
-//        }
-//        return baseResponse;
-//    }
-//
-//    /**
-//     * The `createAndSendPasswordMail` function generates a new password, updates it in the database, retrieves email
-//     * configuration settings, and sends a password reset email to the user if the user exists.
-//     *
-//     * Args:
-//     *   emailId (String): The `emailId` parameter in the `createAndSendPasswordMail` method is the email address of the
-//     * user for whom a password reset email needs to be sent.
-//     *   productName (String): productName: The name of the product for which the password reset email is being sent.
-//     */
-//    private void createAndSendPasswordMail(String emailId, String productName) throws Exception {
-//        UserCreation userCreation = mongoService.getUserWithEmail(emailId);
-//        MailRequest mailRequest = new MailRequest();
-//        MailResponse mailResponse = new MailResponse();
-//
-//        if (null != userCreation) {
-//            String password = ResponseUtility.generateStringAgainstLength(10);
-//            mongoService.updatePassword(emailId, password);
-//
-//            EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(Constants.RESET_PASSWORD, productName, false);
-//            if (null != emailConfiguration) {
-//                getEmailTextByType(emailConfiguration, emailId, mailRequest, password);
-//                //To-do set EmailReqResLog
-//                mailResponse = (MailResponse) TransportUtils.postJsonRequest(mailRequest, connectorEmailSendUrl, MailResponse.class);
-//            }
-//        }
-//    }
-//
-//    /**
-//     * The function `checkOtpExpiration` checks if an OTP (One-Time Password) has expired by comparing the current time
-//     * with a timestamp from an email request/response log.
-//     *
-//     * Args:
-//     *   emailReqResLog (EmailReqResLog): The `emailReqResLog` parameter seems to be an object of type `EmailReqResLog`
-//     * which contains information related to email request and response logs. The method `checkOtpExpiration` is checking
-//     * if the OTP (One-Time Password) associated with this log has expired by comparing the OTP
-//     *
-//     * Returns:
-//     *   The method `checkOtpExpiration` is returning a boolean value. It checks if the OTP (One Time Password) stored in
-//     * the `EmailReqResLog` object is expired by comparing the date and time stored in the object with the date and time
-//     * two minutes ago. If the date and time two minutes ago is before the date and time stored in the `EmailReqResLog`
-//     * object,
-//     */
-//    private boolean checkOtpExpiration(EmailReqResLog emailReqResLog) {
-//        logger.info("Checking if Otp is expired..");
-//        Date currentDate = new Date();
-//        Calendar calendar = Calendar.getInstance();
-//        calendar.setTime(currentDate);
-//
-//        // Subtract 2 minutes
-//        calendar.add(Calendar.MINUTE, -2);
-//
-//        // Get the updated Date
-//        Date twoMinutesAgo = calendar.getTime();
-//        logger.info(String.valueOf(twoMinutesAgo));
-//        logger.info(emailReqResLog.getDateTime().toString());
-//
-//        return twoMinutesAgo.before(emailReqResLog.getDateTime());
-//
-//    }
-//
-//    /**
-//     * The function `validateOtp` validates an OTP (One-Time Password) provided in a request and generates a response based
-//     * on the validation result.
-//     *
-//     * @param validateOtpRequest The `validateOtp` method you provided is used to validate an OTP (One-Time Password) based
-//     * on the `ValidateOtpRequest` input parameter. The method performs the following steps:
-//     * @return The method `validateOtp` returns a `BaseResponse` object.
-//     */
-//    @Override
-//    public BaseResponse validateOtp(ValidateOtpRequest validateOtpRequest) {
-//        BaseResponse baseResponse = null;
-//        ValidateOtpResponse validateOtpResponse = new ValidateOtpResponse();
-//        try {
-//            EmailReqResLog emailReqResLog = mongoService.getEmailReqResLog(validateOtpRequest);
-//            if (null != emailReqResLog) {
-//                if (checkOtpExpiration(emailReqResLog)) {
-//                    if (emailReqResLog.getOtp().equalsIgnoreCase(validateOtpRequest.getOtp())) {
-//                        validateOtpResponse.setSuccess(true);
-//                        validateOtpResponse.setServerSideValidation(ResponseUtility.encryptThisString(emailReqResLog.getOtp() + validateOtpRequest.getOtpId()));
-//                        validateOtpResponse.setMessage("Otp Validated Successfully");
-//                    } else {
-//                        validateOtpResponse.setSuccess(false);
-//                        validateOtpResponse.setMessage("Incorrect Otp");
-//                    }
-//                } else {
-//                    validateOtpResponse.setSuccess(false);
-//                    validateOtpResponse.setMessage("Otp Expired.");
-//                }
-//                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, validateOtpResponse);
-//            } else {
-//                Error error = new Error();
-//                error.setMessage(Constants.SOMETHING_WENT_WRONG);
-//                error.setErrorType("TECHNICAL ERROR");
-//                error.setErrorCode(HttpStatus.INTERNAL_SERVER_ERROR.toString());
-//                validateOtpResponse.setErrors(new Error[]{error});
-//                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, validateOtpResponse);
-//            }
-//
-//        } catch (Exception ex) {
-//            logger.error("Exception occurred while validation Otp with probable cause - ", ex);
-//
-//            Error error = new Error();
-//            error.setMessage(ex.getMessage());
-//            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
-//        }
-//        return baseResponse;
-//    }
-//
-//    /**
-//     * This Java function retrieves a token from Redis based on a given key and returns a corresponding response.
-//     *
-//     * @param key The `key` parameter in the `getTokenByKey` method is used to retrieve a token from a Redis service based
-//     * on the provided key. The method attempts to fetch the token from Redis using the `redisService` and constructs a
-//     * `BaseResponse` object accordingly. If the `redisService` is
-//     * @return The method `getTokenByKey` returns a `BaseResponse` object.
-//     */
-//    @Override
-//    public BaseResponse getTokenByKey(String key) {
-//        BaseResponse baseResponse = null;
-//        try {
-//            if (null != redisService) {
-//                Object token = redisService.getValueFromRedis(key);
-//                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, token);
-//
-//            } else  {
-//                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.NO_CONTENT, "No Token Found");
-//            }
-//
-//        } catch (Exception e) {
-//            logger.error("Exception occurred while getting key with probable cause ", e);
-//            Error error = new Error();
-//            error.setMessage(e.getMessage());
-//            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
-//        }
-//        return baseResponse;
-//    }
-//
-//    /**
-//     * The function `clearTokenByKey` clears a key from Redis and returns a response indicating the success or failure of
-//     * the operation.
-//     *
-//     * @param key The `clearTokenByKey` method is used to clear a token from Redis based on the provided key. The `key`
-//     * parameter is the identifier for the token that needs to be cleared from the Redis cache.
-//     * @return The method `clearTokenByKey` returns a `BaseResponse` object.
-//     */
-//    @Override
-//    public BaseResponse clearTokenByKey(String key) {
-//        BaseResponse baseResponse = null;
-//        try {
-//            if (null != redisService) {
-//                redisService.clearKeyFromRedis(key);
-//                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, "key clear successful.");
-//
-//            } else  {
-//                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.NO_CONTENT, "No Token Found");
-//            }
-//
-//        } catch (Exception e) {
-//            logger.error("Exception occurred while getting key with probable cause ", e);
-//            Error error = new Error();
-//            error.setMessage(e.getMessage());
-//            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
-//        }
-//        return baseResponse;
-//    }
 
     @Override
-    public BaseResponse logout(LogoutRequest logoutRequest, HttpServletRequest httpServletRequest) {
+    public BaseResponse logout(EncryptedPayload payload, HttpServletRequest httpServletRequest) {
         logger.info("Inside logout method");
         BaseResponse baseResponse = null;
         GenericResponse genericResponse = new GenericResponse();
+        String id = httpServletRequest.getHeader("sKeyId");
+        String key = (String) redisService.getValueFromRedis(id);
 
         try {
+            String decryptedPayload = AESUtil.decrypt(payload.getEncryptedPayload(), key);
             String authHeader = httpServletRequest.getHeader("Authorization");
             String opaqueToken = authHeader.substring(7);
             redisService.clearKeyFromRedis(opaqueToken);
             genericResponse.setResponseMessage("Logout Successful");
             genericResponse.setStatus(String.valueOf(HttpStatus.OK.value()));
-            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
+            baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
 
         } catch (Exception e) {
             logger.error("Exception occurred while logout with probable cause ", e);
             Error error = new Error();
             error.setMessage(e.getMessage());
-            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+            baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
         }
         return baseResponse;
     }
 
     @Override
-    public BaseResponse forgotPassword(EncryptedPayload payload) {
+    public BaseResponse forgotPassword(EncryptedPayload payload, HttpServletRequest httpServletRequest) {
         logger.info("Inside forgotPassword method");
         BaseResponse baseResponse = null;
         EmailOtpResponse emailOtpResponse = new EmailOtpResponse();
         Collection<Error> errors = new ArrayList<>();
+        String id = httpServletRequest.getHeader("sKeyId");
+        String key = (String) redisService.getValueFromRedis(id);
         try {
-            String decryptedPayload = EncryptDecryptService.decryptPayload(payload.getEncryptedPayload());
+            String decryptedPayload = AESUtil.decrypt(payload.getEncryptedPayload(), key);
             if (StringUtils.isNotBlank(decryptedPayload)) {
                 // Convert the decrypted string to a Java class
                 ObjectMapper objectMapper = new ObjectMapper();
@@ -735,7 +472,7 @@ public class HomeManagerImpl implements HomeManager {
                             .errorType(Error.ERROR_TYPE.BAD_REQUEST.toValue())
                             .level(Error.SEVERITY.HIGH.name())
                             .build());
-                    baseResponse = ResponseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                    baseResponse = responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                 } else {
                     UserRegistry userRegistry = mongoService.getUserByUsernameorEmailAndProduct(forgotPasswordRequest.getUserIdentifier(), forgotPasswordRequest.getUserIdentifier(), forgotPasswordRequest.getProductName().getName());
                     if (null!= userRegistry) {
@@ -750,7 +487,7 @@ public class HomeManagerImpl implements HomeManager {
                         emailOtpResponse.setSuccess(true);
                         emailOtpResponse.setOtp(TokenGenerator.generateHexString(24));
                         emailOtpResponse.setMessage(Constants.FURTHER_INSTRUCTION_SENT_ON_EMAIL);
-                        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
+                        baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
                     }
                 }
             } else {
@@ -761,7 +498,7 @@ public class HomeManagerImpl implements HomeManager {
                         .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
                         .level(Error.SEVERITY.HIGH.name())
                         .build());
-                baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
+                baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
             }
 
 
@@ -769,7 +506,7 @@ public class HomeManagerImpl implements HomeManager {
             logger.error("Exception occurred while forgotPassword with probable cause ", e);
             Error error = new Error();
             error.setMessage(e.getMessage());
-            baseResponse = ResponseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+            baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
         }
         return baseResponse;
     }

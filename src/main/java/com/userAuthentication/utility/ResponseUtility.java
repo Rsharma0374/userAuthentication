@@ -5,13 +5,17 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.userAuthentication.constant.ErrorCodes;
-import com.userAuthentication.response.BaseResponse;
+import com.userAuthentication.response.*;
 import com.userAuthentication.response.Error;
-import com.userAuthentication.response.Payload;
-import com.userAuthentication.response.Status;
+import com.userAuthentication.security.AESUtil;
+import com.userAuthentication.service.redis.RedisService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -23,6 +27,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+@Component
 public class ResponseUtility {
 
     private static final Logger logger = LoggerFactory.getLogger(ResponseUtility.class);
@@ -31,7 +36,10 @@ public class ResponseUtility {
 
     private static ObjectMapper mapper = new ObjectMapper().registerModule(new JodaModule());
 
-    public static BaseResponse getBaseResponse(HttpStatus httpStatus, Object buzResponse) {
+    @Autowired
+    private RedisService redisService;
+
+    public BaseResponse getBaseResponse(HttpStatus httpStatus, Object buzResponse) {
         logger.info("Inside getBaseResponse method");
 
         if (null == buzResponse)
@@ -46,7 +54,7 @@ public class ResponseUtility {
                 .build();
     }
 
-    public static String encryptThisString(String input) {
+    public String encryptThisString(String input) {
 
 
         try {
@@ -78,7 +86,7 @@ public class ResponseUtility {
         }
     }
 
-    public static String generateOtpAgainstLength(int length) {
+    public String generateOtpAgainstLength(int length) {
         // Using numeric values
         String numbers = NUMBERS;
 
@@ -94,7 +102,7 @@ public class ResponseUtility {
     }
 
 
-    public static String generateStringAgainstLength(int length) {
+    public String generateStringAgainstLength(int length) {
         // Using numeric values
         String numbers = ALPHANUMERIC;
 
@@ -120,7 +128,7 @@ public class ResponseUtility {
 
     }
 
-    public static Object redisObject (String username, String token, long expirationTime, Object obj) {
+    public Object redisObject (String username, String token, long expirationTime, Object obj) {
         Map<String, Object> redisClass = new HashMap<>();
         redisClass.put("username", username);
         redisClass.put("token", token);
@@ -146,7 +154,7 @@ public class ResponseUtility {
         return redisClass;
     }
 
-    public static Map<String, Object> convertToMap(Object redisObj) {
+    public Map<String, Object> convertToMap(Object redisObj) {
         Map<String, Object> redisClass = new HashMap<>();
         Field[] fields = redisObj.getClass().getDeclaredFields();
         for (Field field : fields) {
@@ -171,7 +179,7 @@ public class ResponseUtility {
         }
     }
 
-    public static BaseResponse getBaseResponse(HttpStatus httpStatus, Collection<Error> errors) {
+    public BaseResponse getBaseResponse(HttpStatus httpStatus, Collection<Error> errors) {
         return BaseResponse.builder()
                 .status(
                         Status.builder()
@@ -181,7 +189,7 @@ public class ResponseUtility {
                 .build();
     }
 
-    public static Collection<Error> mandatoryConfigurationError() {
+    public Collection<Error> mandatoryConfigurationError() {
         Collection<Error> errors = new ArrayList<>();
         errors.add(Error.builder()
                         .message(ErrorCodes.MANDATORY_CONFIGURATION_NOT_FOUND_FOR_THIS_SERVICE)
@@ -191,6 +199,20 @@ public class ResponseUtility {
                 .build());
 
         return errors;
+    }
+
+    public String getKeyFromHeader(HttpServletRequest httpRequest) {
+        String id = httpRequest.getHeader("sKeyId");
+        return (String) redisService.getValueFromRedis(id);
+    }
+
+    public @org.jetbrains.annotations.NotNull ResponseEntity<EncryptedResponse> encryptedResponse(HttpServletRequest httpRequest, BaseResponse baseResponse) throws Exception {
+        // Convert BaseResponse to JSON String
+        String jsonResponse = JsonUtils.toString(baseResponse);
+        String encryptedResponse = AESUtil.encrypt(jsonResponse, getKeyFromHeader(httpRequest));
+        EncryptedResponse response = new EncryptedResponse();
+        response.setResponse(encryptedResponse);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
 }

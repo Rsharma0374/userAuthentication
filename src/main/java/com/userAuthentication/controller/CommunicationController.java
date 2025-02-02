@@ -5,7 +5,10 @@ import com.userAuthentication.request.EmailOtpRequest;
 import com.userAuthentication.request.EncryptedPayload;
 import com.userAuthentication.request.ValidateOtpRequest;
 import com.userAuthentication.response.BaseResponse;
+import com.userAuthentication.response.EncryptedResponse;
 import com.userAuthentication.service.CommunicationService;
+import com.userAuthentication.utility.ResponseUtility;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,30 +30,40 @@ public class CommunicationController {
     @Autowired
     private CommunicationService communicationService;
 
+    @Autowired
+    private ResponseUtility responseUtility;
+
     @PostMapping(EndPointReferrer.SEND_EMAIL_OTP)
-    private ResponseEntity<BaseResponse> sendEmailOtp(@RequestBody @NotNull EmailOtpRequest emailOtpRequest) {
+    private ResponseEntity<EncryptedResponse> sendEmailOtp(@RequestBody @NotNull EmailOtpRequest emailOtpRequest, HttpServletRequest request) throws Exception {
 
         logger.debug(Constants.CONTROLLER_STARTED, EndPointReferrer.SEND_EMAIL_OTP);
 
-        return new ResponseEntity<>(communicationService.sendEmailOtp(emailOtpRequest), HttpStatus.OK);
+//        return new ResponseEntity<>(communicationService.sendEmailOtp(emailOtpRequest), HttpStatus.OK);
+
+        BaseResponse baseResponse = communicationService.sendEmailOtp(emailOtpRequest);
+        return responseUtility.encryptedResponse(request, baseResponse);
 
     }
 
     @PostMapping(EndPointReferrer.VALIDATE_EMAIL_OTP)
-    private ResponseEntity<BaseResponse> validateEmailOtp(@RequestBody @NotNull EncryptedPayload encryptedPayload) {
+    private ResponseEntity<EncryptedResponse> validateEmailOtp(@RequestBody @NotNull EncryptedPayload encryptedPayload, HttpServletRequest request) throws Exception {
 
         logger.debug(Constants.CONTROLLER_STARTED, EndPointReferrer.VALIDATE_EMAIL_OTP);
 
-        return new ResponseEntity<>(communicationService.validateEmailOtp(encryptedPayload), HttpStatus.OK);
+//        return new ResponseEntity<>(communicationService.validateEmailOtp(encryptedPayload, request), HttpStatus.OK);
 
+        BaseResponse baseResponse = communicationService.validateEmailOtp(encryptedPayload, request);
+        return responseUtility.encryptedResponse(request, baseResponse);
     }
 
     @PostMapping(EndPointReferrer.VALIDATE_OTP_RESET_PASSWORD)
-    private ResponseEntity<BaseResponse> validateOtpResetPassword(@RequestBody @NotNull EncryptedPayload encryptedPayload) {
+    private ResponseEntity<EncryptedResponse> validateOtpResetPassword(@RequestBody @NotNull EncryptedPayload encryptedPayload, HttpServletRequest request) throws Exception {
 
         logger.debug(Constants.CONTROLLER_STARTED, EndPointReferrer.VALIDATE_OTP_RESET_PASSWORD);
 
-        return new ResponseEntity<>(communicationService.validateOtpResetPassword(encryptedPayload), HttpStatus.OK);
+//        return new ResponseEntity<>(communicationService.validateOtpResetPassword(encryptedPayload, request), HttpStatus.OK);
+        BaseResponse baseResponse = communicationService.validateOtpResetPassword(encryptedPayload, request);
+        return responseUtility.encryptedResponse(request, baseResponse);
 
     }
 }

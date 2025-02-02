@@ -17,19 +17,10 @@ public interface HomeManager {
 
     BaseResponse sendEmailOtp(EmailOtpRequest emailOtpRequest);
 
-    BaseResponse validate2faOtp(EncryptedPayload encryptedPayload);
+    BaseResponse validate2faOtp(EncryptedPayload encryptedPayload, HttpServletRequest httpRequest)throws Exception;
 
-    BaseResponse logout(LogoutRequest logoutRequest, HttpServletRequest httpServletRequest);
+    BaseResponse logout(EncryptedPayload encryptedPayload, HttpServletRequest httpServletRequest);
 
-    BaseResponse forgotPassword(EncryptedPayload payload);
-//
-//    BaseResponse sendForgotOtp(EmailOtpRequest emailOtpRequest) throws Exception;
-//
-//    BaseResponse validateOtpAndResetPassword(ValidateOtpRequest validateOtpRequest);
-//
-//    BaseResponse validateOtp(ValidateOtpRequest validateOtpRequest);
-//
-//    BaseResponse getTokenByKey(String key);
-//
-//    BaseResponse clearTokenByKey(String key);
+    BaseResponse forgotPassword(EncryptedPayload payload, HttpServletRequest httpServletRequest);
+
 }

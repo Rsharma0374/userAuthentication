@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.SneakyThrows;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -23,6 +24,8 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Autowired
+    private ResponseUtility responseUtility;
 
     @SneakyThrows
     @Override
@@ -43,7 +46,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         error.setErrorType("SYSTEM");
         Collection<Error> errors = new ArrayList<>();
         errors.add(error);
-        baseResponse = ResponseUtility.getBaseResponse(HttpStatus.UNAUTHORIZED, errors);
+        baseResponse = responseUtility.getBaseResponse(HttpStatus.UNAUTHORIZED, errors);
         // Write the response
         response.getWriter().write(objectMapper.writeValueAsString(baseResponse));
     }
