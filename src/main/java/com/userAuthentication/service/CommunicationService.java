@@ -10,7 +10,7 @@ import javax.validation.constraints.NotNull;
 
 public interface CommunicationService {
 
-    BaseResponse sendEmailOtp(@NotNull EmailOtpRequest emailOtpRequest);
+    BaseResponse sendEmailOtp(@NotNull EncryptedPayload encryptedPayload, HttpServletRequest httpServletRequest);
 
     BaseResponse validateEmailOtp(@NotNull EncryptedPayload encryptedPayload, HttpServletRequest request);
 

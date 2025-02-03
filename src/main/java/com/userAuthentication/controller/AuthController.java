@@ -54,11 +54,11 @@ public class AuthController {
 
     @PostMapping(EndPointReferrer.CREATE_USER)
     public ResponseEntity<EncryptedResponse> createUser(
-            @RequestBody @NotNull UserCreation userCreation, HttpServletRequest httpRequest) {
+            @RequestBody @NotNull EncryptedPayload encryptedPayload, HttpServletRequest httpRequest) {
         try {
             logger.info(Constants.CONTROLLER_STARTED, EndPointReferrer.CREATE_USER);
 
-            BaseResponse baseResponse = homeManager.createUser(userCreation);
+            BaseResponse baseResponse = homeManager.createUser(encryptedPayload, httpRequest);
             return responseUtility.encryptedResponse(httpRequest, baseResponse);
 
         } catch (Exception e) {

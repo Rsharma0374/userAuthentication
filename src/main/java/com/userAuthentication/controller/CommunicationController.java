@@ -34,13 +34,13 @@ public class CommunicationController {
     private ResponseUtility responseUtility;
 
     @PostMapping(EndPointReferrer.SEND_EMAIL_OTP)
-    private ResponseEntity<EncryptedResponse> sendEmailOtp(@RequestBody @NotNull EmailOtpRequest emailOtpRequest, HttpServletRequest request) throws Exception {
+    private ResponseEntity<EncryptedResponse> sendEmailOtp(@RequestBody @NotNull EncryptedPayload encryptedPayload, HttpServletRequest request) throws Exception {
 
         logger.debug(Constants.CONTROLLER_STARTED, EndPointReferrer.SEND_EMAIL_OTP);
 
 //        return new ResponseEntity<>(communicationService.sendEmailOtp(emailOtpRequest), HttpStatus.OK);
 
-        BaseResponse baseResponse = communicationService.sendEmailOtp(emailOtpRequest);
+        BaseResponse baseResponse = communicationService.sendEmailOtp(encryptedPayload, request);
         return responseUtility.encryptedResponse(request, baseResponse);
 
     }

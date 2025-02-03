@@ -55,46 +55,60 @@ public class CommunicationServiceImpl implements CommunicationService {
     private ResponseUtility responseUtility;
 
     @Override
-    public BaseResponse sendEmailOtp(EmailOtpRequest emailOtpRequest) {
-        logger.info("Inside send email otp method for emailType {}", emailOtpRequest.getEmailType());
+    public BaseResponse sendEmailOtp(EncryptedPayload encryptedPayload, HttpServletRequest httpServletRequest) {
         BaseResponse baseResponse = null;
         MailRequest mailRequest = new MailRequest();
         MailResponse mailResponse = new MailResponse();
         EmailReqResLog emailReqResLog = new EmailReqResLog();
         EmailOtpResponse emailOtpResponse = new EmailOtpResponse();
+        EmailOtpRequest emailOtpRequest = null;
         Collection<Error> errors = new ArrayList<>();
+        String key = responseUtility.getKeyFromHeader(httpServletRequest);
         try {
-            EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(emailOtpRequest.getEmailType(), emailOtpRequest.getProductName().getName(), emailOtpRequest.isOtpRequired());
-            logger.debug("Email config is {}", emailConfiguration);
+            String decryptedPayload= AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
+            if (StringUtils.isNoneBlank(decryptedPayload)) {
+                emailOtpRequest = JsonUtils.parseJson(decryptedPayload, EmailOtpRequest.class);
+                EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(emailOtpRequest.getEmailType(), emailOtpRequest.getProductName().getName(), emailOtpRequest.isOtpRequired());
+                logger.debug("Email config is {}", emailConfiguration);
 
-            if (null == emailConfiguration) {
-                return responseUtility.getBaseResponse(HttpStatus.NO_CONTENT, responseUtility.mandatoryConfigurationError());
-            }
+                if (null == emailConfiguration) {
+                    return responseUtility.getBaseResponse(HttpStatus.NO_CONTENT, responseUtility.mandatoryConfigurationError());
+                }
 
-            //Check email flooding
-            if (emailConfiguration.isLimitCheck() && checkEmailFlooding(emailOtpRequest, emailConfiguration.getOtpMaxLimit())) {
-                return limitExhausted(emailOtpRequest.getEmailId());
-            }
-            String otp = responseUtility.generateOtpAgainstLength(6);
+                //Check email flooding
+                if (emailConfiguration.isLimitCheck() && checkEmailFlooding(emailOtpRequest, emailConfiguration.getOtpMaxLimit())) {
+                    return limitExhausted(emailOtpRequest.getEmailId());
+                }
+                String otp = responseUtility.generateOtpAgainstLength(6);
 
-            getEmailTextByType(emailConfiguration, emailOtpRequest.getEmailId(), mailRequest, otp, emailOtpRequest.getAdditionalInfo());
-            settingEmailReqResLog(emailReqResLog, otp, mailRequest, emailOtpRequest);
+                getEmailTextByType(emailConfiguration, emailOtpRequest.getEmailId(), mailRequest, otp, emailOtpRequest.getAdditionalInfo());
+                settingEmailReqResLog(emailReqResLog, otp, mailRequest, emailOtpRequest);
 
 
-            mailResponse = (MailResponse) TransportUtils.postJsonRequest(mailRequest, connectorEmailSendUrl, MailResponse.class);
+                mailResponse = (MailResponse) TransportUtils.postJsonRequest(mailRequest, connectorEmailSendUrl, MailResponse.class);
 
-            Error error = new Error();
-            logger.info("Mail Response : {}", mailResponse);
-            if (mailResponse != null) {
-                emailReqResLog.setMailResponseStatus(mailResponse.getStatus());
-                if (mailResponse.getStatus().equalsIgnoreCase(Constants.SUCCESS)) {
-                    emailOtpResponse.setSuccess(true);
-                    emailOtpResponse.setOtp(emailReqResLog.getId());
-                    emailReqResLog.setUserToken(String.valueOf(UUID.randomUUID()));
-                    emailOtpResponse.setMessage(Constants.FURTHER_INSTRUCTION_SENT_ON_EMAIL);
-                    baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
+                Error error = new Error();
+                logger.info("Mail Response : {}", mailResponse);
+                if (mailResponse != null) {
+                    emailReqResLog.setMailResponseStatus(mailResponse.getStatus());
+                    if (mailResponse.getStatus().equalsIgnoreCase(Constants.SUCCESS)) {
+                        emailOtpResponse.setSuccess(true);
+                        emailOtpResponse.setOtp(emailReqResLog.getId());
+                        emailReqResLog.setUserToken(String.valueOf(UUID.randomUUID()));
+                        emailOtpResponse.setMessage(Constants.FURTHER_INSTRUCTION_SENT_ON_EMAIL);
+                        baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
+                    } else {
+                        logger.error("Mail Response is not null");
+                        errors.add(Error.builder()
+                                .message(ErrorCodes.SMS_SENDING_FAIL_TRY_AGAIN)
+                                .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                                .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
+                                .level(Error.SEVERITY.HIGH.name())
+                                .build());
+                        baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
+                    }
                 } else {
-                    logger.error("Mail Response is not null");
+                    logger.error("Mail Response is null");
                     errors.add(Error.builder()
                             .message(ErrorCodes.SMS_SENDING_FAIL_TRY_AGAIN)
                             .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
@@ -104,15 +118,16 @@ public class CommunicationServiceImpl implements CommunicationService {
                     baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
                 }
             } else {
-                logger.error("Mail Response is null");
+                logger.error("Error occurred while decrypting the payload");
                 errors.add(Error.builder()
-                        .message(ErrorCodes.SMS_SENDING_FAIL_TRY_AGAIN)
+                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
                         .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
                         .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
                         .level(Error.SEVERITY.HIGH.name())
                         .build());
                 baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
             }
+
 
         } catch (Exception e) {
             logger.error("Exception occurred while sending otp with probable cause - ", e);
@@ -196,8 +211,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         ValidateOtpRequest validateOtpRequest;
         Collection<Error> errors = new ArrayList<>();
         EmailReqResLog emailReqResLog = null;
-        String id = request.getHeader("sKeyId");
-        String key = (String) redisService.getValueFromRedis(id);
+        String key = responseUtility.getKeyFromHeader(request);
         try {
             String decryptedPayload= AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
             if (StringUtils.isNoneBlank(decryptedPayload)) {
@@ -289,8 +303,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         int attemptCount = 0;
         boolean isAttemptValid = false;
         Collection<Error> errors = new ArrayList<>();
-        String id = request.getHeader("sKeyId");
-        String key = (String) redisService.getValueFromRedis(id);
+        String key = responseUtility.getKeyFromHeader(request);
 
         ValidateOtpResponse validateOtpResponse = new ValidateOtpResponse();
         try {
@@ -395,6 +408,10 @@ public class CommunicationServiceImpl implements CommunicationService {
                 requestData.put(Constants.FULL_NAME, userRegistry.getFullName());
                 requestData.put(Constants.PASSWORD, password);
                 getEmailTextByType(emailConfiguration, emailId, mailRequest, null, requestData);
+                emailReqResLog.setMailMessage(mailRequest.getMessage());
+                emailReqResLog.setEmailId(emailId);
+                emailReqResLog.setEmailType(emailConfiguration.getEmailType());
+                emailReqResLog.setMailSubject(mailRequest.getSubject());
                 //To-do set EmailReqResLog
                 mailResponse = (MailResponse) TransportUtils.postJsonRequest(mailRequest, connectorEmailSendUrl, MailResponse.class);
 
@@ -430,6 +447,8 @@ public class CommunicationServiceImpl implements CommunicationService {
         } catch (Exception e) {
             logger.error("Exception occurred while sending otp with probable cause - ", e);
             baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(e));
+        } finally {
+            mongoService.saveEmailResResLog(emailReqResLog);
         }
 
         return baseResponse;

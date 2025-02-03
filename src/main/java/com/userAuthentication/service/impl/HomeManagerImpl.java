@@ -69,8 +69,7 @@ public class HomeManagerImpl implements HomeManager {
         LoginRequest loginRequest = null;
         Collection<Error> errors = new ArrayList<>();
         BaseResponse baseResponse = null;
-        String id = httpRequest.getHeader("sKeyId");
-        String key = (String) redisService.getValueFromRedis(id);
+        String key = responseUtility.getKeyFromHeader(httpRequest);
         try {
             //Decrypt payload
             String decryptedPayload = AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
@@ -105,7 +104,7 @@ public class HomeManagerImpl implements HomeManager {
 
                     if (EncryptDecryptService.checkPassword(decryptedPassword, loginRequest.getShaPassword())) {
                         //send Otp to registered email for 2FA
-                        baseResponse = send2FAOtp(loginResponse, userRegistry, loginRequest.getProductName());
+                        baseResponse = send2FAOtp(loginResponse, userRegistry, loginRequest.getProductName(), httpRequest);
                     } else {
                         errors.add(Error.builder()
                                 .message("Invalid Credentials")
@@ -136,7 +135,7 @@ public class HomeManagerImpl implements HomeManager {
         return baseResponse;
     }
 
-    private BaseResponse send2FAOtp(LoginResponse loginResponse, UserRegistry userRegistry, ProductName productName) {
+    private BaseResponse send2FAOtp(LoginResponse loginResponse, UserRegistry userRegistry, ProductName productName, HttpServletRequest httpRequest) throws Exception {
         logger.debug("Inside send 2FA otp.");
         BaseResponse baseResponse = null;
         try {
@@ -148,8 +147,10 @@ public class HomeManagerImpl implements HomeManager {
             Map<String, String> additionalInfo = new HashMap<>();
             emailOtpRequest.setAdditionalInfo(additionalInfo);
             additionalInfo.put(Constants.FULL_NAME, userRegistry.getFullName());
+            EncryptedPayload encryptedPayload = new EncryptedPayload();
+            encryptedPayload.setEncryptedPayload(AESUtil.encrypt(JsonUtils.objectToString(emailOtpRequest), responseUtility.getKeyFromHeader(httpRequest)));
 
-            baseResponse = communicationService.sendEmailOtp(emailOtpRequest);
+            baseResponse = communicationService.sendEmailOtp(encryptedPayload, httpRequest);
             logger.warn("BaseResponse received is {}", baseResponse);
             if (null != baseResponse && null != baseResponse.getPayload() && null != baseResponse.getPayload().getT()) {
                 EmailOtpResponse emailOtpResponse = (EmailOtpResponse) baseResponse.getPayload().getT();
@@ -188,50 +189,66 @@ public class HomeManagerImpl implements HomeManager {
 
     }
 
-    public BaseResponse createUser(UserCreation userCreation) {
+    public BaseResponse createUser(EncryptedPayload encryptedPayload, HttpServletRequest httpRequest) {
         logger.info("Inside Create user method");
         GenericResponse genericResponse = new GenericResponse();
         BaseResponse baseResponse = null;
+        UserCreation userCreation = null;
         Collection<Error> errors = new ArrayList<>();
-
+        String key = responseUtility.getKeyFromHeader(httpRequest);
         try {
-            if (userCreation == null) {
-                errors.add(Error.builder()
-                        .message(ErrorCodes.USER_CREATION_REQUEST_OBJECT_NULL)
-                        .errorCode(String.valueOf(HttpStatus.BAD_REQUEST.value()))
-                        .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
-                        .level(Error.SEVERITY.LOW.name())
-                        .build());
-                return responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
-            }
+            String decryptedPayload = AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
+            if (StringUtils.isNoneBlank(decryptedPayload)) {
+                userCreation = JsonUtils.parseJson(decryptedPayload, UserCreation.class);
 
-            if (null != mongoService.getUserByUsernameorEmailAndProduct(userCreation.getUserName(), userCreation.getEmail(), userCreation.getProductName().getName())) {
-                errors.add(Error.builder()
-                        .message(ErrorCodes.USER_ALREADY_EXIST_ERROR)
-                        .errorCode(String.valueOf(HttpStatus.CONFLICT.value()))
-                        .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
-                        .level(Error.SEVERITY.LOW.name())
-                        .build());
-                return responseUtility.getBaseResponse(HttpStatus.CONFLICT, errors);
-            }
+                if (userCreation == null) {
+                    errors.add(Error.builder()
+                            .message(ErrorCodes.USER_CREATION_REQUEST_OBJECT_NULL)
+                            .errorCode(String.valueOf(HttpStatus.BAD_REQUEST.value()))
+                            .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                            .level(Error.SEVERITY.LOW.name())
+                            .build());
+                    return responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                }
 
-            boolean success = createAndSaveUserDetails(userCreation);
+                if (null != mongoService.getUserByUsernameorEmailAndProduct(userCreation.getUserName(), userCreation.getEmail(), userCreation.getProductName().getName())) {
+                    errors.add(Error.builder()
+                            .message(ErrorCodes.USER_ALREADY_EXIST_ERROR)
+                            .errorCode(String.valueOf(HttpStatus.CONFLICT.value()))
+                            .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                            .level(Error.SEVERITY.LOW.name())
+                            .build());
+                    return responseUtility.getBaseResponse(HttpStatus.CONFLICT, errors);
+                }
 
-            if (success) {
-                genericResponse.setStatus(StatusConstant.SUCCESS.name());
-                genericResponse.setResponseMessage("User Created Successfully");
-                baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
+                boolean success = createAndSaveUserDetails(userCreation);
+
+                if (success) {
+                    genericResponse.setStatus(StatusConstant.SUCCESS.name());
+                    genericResponse.setResponseMessage("User Created Successfully");
+                    baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
+                } else {
+                    genericResponse.setStatus(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()));
+                    genericResponse.setResponseMessage("User creation failed.");
+                    errors.add(Error.builder()
+                            .message(ErrorCodes.USER_CREATION_FAILED)
+                            .errorCode(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()))
+                            .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                            .level(Error.SEVERITY.HIGH.name())
+                            .build());
+                    baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
+                }
             } else {
-                genericResponse.setStatus(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()));
-                genericResponse.setResponseMessage("User creation failed.");
+                logger.error("Error occurred while decrypting the payload");
                 errors.add(Error.builder()
-                        .message(ErrorCodes.USER_CREATION_FAILED)
-                        .errorCode(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()))
-                        .errorType(Error.ERROR_TYPE.BUSINESS.toValue())
+                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
+                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
                         .level(Error.SEVERITY.HIGH.name())
                         .build());
-                baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
+                baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
             }
+
         } catch (Exception ex) {
             Error error = new Error();
             error.setMessage(ex.getMessage());
@@ -307,8 +324,7 @@ public class HomeManagerImpl implements HomeManager {
         ValidateOtpRequest validateOtpRequest = null;
         BaseResponse baseResponse = null;
         Collection<Error> errors = new ArrayList<>();
-        String id = request.getHeader("sKeyId");
-        String key = (String) redisService.getValueFromRedis(id);
+        String key = responseUtility.getKeyFromHeader(request);
         try {
             String decryptedPayload= AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
             if (StringUtils.isNoneBlank(decryptedPayload)) {
@@ -429,8 +445,7 @@ public class HomeManagerImpl implements HomeManager {
         logger.info("Inside logout method");
         BaseResponse baseResponse = null;
         GenericResponse genericResponse = new GenericResponse();
-        String id = httpServletRequest.getHeader("sKeyId");
-        String key = (String) redisService.getValueFromRedis(id);
+        String key = responseUtility.getKeyFromHeader(httpServletRequest);
 
         try {
             String decryptedPayload = AESUtil.decrypt(payload.getEncryptedPayload(), key);
@@ -456,8 +471,7 @@ public class HomeManagerImpl implements HomeManager {
         BaseResponse baseResponse = null;
         EmailOtpResponse emailOtpResponse = new EmailOtpResponse();
         Collection<Error> errors = new ArrayList<>();
-        String id = httpServletRequest.getHeader("sKeyId");
-        String key = (String) redisService.getValueFromRedis(id);
+        String key = responseUtility.getKeyFromHeader(httpServletRequest);
         try {
             String decryptedPayload = AESUtil.decrypt(payload.getEncryptedPayload(), key);
             if (StringUtils.isNotBlank(decryptedPayload)) {
@@ -481,7 +495,9 @@ public class HomeManagerImpl implements HomeManager {
                         emailOtpRequest.setProductName(forgotPasswordRequest.getProductName());
                         emailOtpRequest.setOtpRequired(true);
                         emailOtpRequest.setEmailType("FORGOT_PASSWORD_OTP");
-                        baseResponse = communicationService.sendEmailOtp(emailOtpRequest);
+                        EncryptedPayload encryptedPayload = new EncryptedPayload();
+                        encryptedPayload.setEncryptedPayload(AESUtil.encrypt(JsonUtils.objectToString(emailOtpRequest), key));
+                        baseResponse = communicationService.sendEmailOtp(encryptedPayload, httpServletRequest);
 
                     } else {
                         emailOtpResponse.setSuccess(true);

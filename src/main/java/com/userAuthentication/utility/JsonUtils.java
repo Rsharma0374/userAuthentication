@@ -1,6 +1,7 @@
 package com.userAuthentication.utility;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.userAuthentication.request.EmailOtpRequest;
 import com.userAuthentication.response.BaseResponse;
 import lombok.Data;
 import lombok.ToString;
@@ -26,6 +27,14 @@ public class JsonUtils {
 
         try {
             return objectMapper.writeValueAsString(baseResponse);
+        } catch (Exception e) {
+            throw new RuntimeException("Error parsing String with probable cause ", e);
+        }
+    }
+
+    public static String objectToString(Object object) {
+        try {
+            return objectMapper.writeValueAsString(object);
         } catch (Exception e) {
             throw new RuntimeException("Error parsing String with probable cause ", e);
         }

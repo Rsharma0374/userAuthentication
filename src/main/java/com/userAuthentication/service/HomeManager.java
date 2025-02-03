@@ -13,7 +13,7 @@ public interface HomeManager {
 
     BaseResponse login(EncryptedPayload encryptedPayload, HttpServletRequest httpRequest)throws Exception;
 
-    BaseResponse createUser(UserCreation userCreation);
+    BaseResponse createUser(EncryptedPayload encryptedPayload, HttpServletRequest httpRequest)throws Exception;
 
     BaseResponse sendEmailOtp(EmailOtpRequest emailOtpRequest);
 
