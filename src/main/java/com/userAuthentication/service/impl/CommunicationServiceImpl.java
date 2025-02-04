@@ -88,9 +88,7 @@ public class CommunicationServiceImpl implements CommunicationService {
                 settingEmailReqResLog(emailReqResLog, otp, mailRequest, emailOtpRequest);
 
                 BaseResponse emailResponse = transportUtils.sendEmail(mailRequest);
-                mailResponse = (MailResponse) emailResponse.getPayload().getT();
-
-//                mailResponse = (MailResponse) TransportUtils.postJsonRequest(mailRequest, connectorEmailSendUrl, MailResponse.class);
+                mailResponse = JsonUtils.convertToType(emailResponse.getPayload().getT(), MailResponse.class);
 
                 Error error = new Error();
                 logger.info("Mail Response : {}", mailResponse);

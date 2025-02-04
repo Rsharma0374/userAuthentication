@@ -23,6 +23,10 @@ public class JsonUtils {
         }
     }
 
+    public static <T> T convertToType(Object object, Class<T> clazz) {
+        return objectMapper.convertValue(object, clazz);
+    }
+
     public static String toString(BaseResponse baseResponse) {
 
         try {
