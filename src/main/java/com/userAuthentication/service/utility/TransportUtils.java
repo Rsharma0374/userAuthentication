@@ -1,12 +1,17 @@
 package com.userAuthentication.service.utility;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.userAuthentication.feign.EmailInterface;
+import com.userAuthentication.model.email.MailRequest;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.utility.ResponseUtility;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -15,10 +20,24 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 
+@Component
 public class TransportUtils {
     private static final Logger logger = LoggerFactory.getLogger(TransportUtils.class);
 
 
+    @Autowired
+    EmailInterface emailInterface;
+
+    public BaseResponse sendEmail(MailRequest mailRequest) {
+        try {
+            ResponseEntity<BaseResponse> responseEntity = emailInterface.sendEmail(mailRequest);
+            return responseEntity.getBody();
+        } catch (Exception e) {
+            logger.error("Exception cause due to ", e);
+            return null;
+        }
+
+    }
 
     public static Object postJsonRequest(Object jsonRequest, String url, Class<?> name) throws Exception {
 

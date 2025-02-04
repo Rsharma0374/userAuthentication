@@ -54,6 +54,9 @@ public class CommunicationServiceImpl implements CommunicationService {
     @Autowired
     private ResponseUtility responseUtility;
 
+    @Autowired
+    private TransportUtils transportUtils;
+
     @Override
     public BaseResponse sendEmailOtp(EncryptedPayload encryptedPayload, HttpServletRequest httpServletRequest) {
         BaseResponse baseResponse = null;
@@ -84,8 +87,10 @@ public class CommunicationServiceImpl implements CommunicationService {
                 getEmailTextByType(emailConfiguration, emailOtpRequest.getEmailId(), mailRequest, otp, emailOtpRequest.getAdditionalInfo());
                 settingEmailReqResLog(emailReqResLog, otp, mailRequest, emailOtpRequest);
 
+                BaseResponse emailResponse = transportUtils.sendEmail(mailRequest);
+                mailResponse = (MailResponse) emailResponse.getPayload().getT();
 
-                mailResponse = (MailResponse) TransportUtils.postJsonRequest(mailRequest, connectorEmailSendUrl, MailResponse.class);
+//                mailResponse = (MailResponse) TransportUtils.postJsonRequest(mailRequest, connectorEmailSendUrl, MailResponse.class);
 
                 Error error = new Error();
                 logger.info("Mail Response : {}", mailResponse);

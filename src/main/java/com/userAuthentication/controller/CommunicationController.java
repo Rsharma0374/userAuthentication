@@ -1,12 +1,14 @@
 package com.userAuthentication.controller;
 
 import com.userAuthentication.constant.Constants;
+import com.userAuthentication.model.email.MailRequest;
 import com.userAuthentication.request.EmailOtpRequest;
 import com.userAuthentication.request.EncryptedPayload;
 import com.userAuthentication.request.ValidateOtpRequest;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.response.EncryptedResponse;
 import com.userAuthentication.service.CommunicationService;
+import com.userAuthentication.service.utility.TransportUtils;
 import com.userAuthentication.utility.ResponseUtility;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -32,6 +34,9 @@ public class CommunicationController {
 
     @Autowired
     private ResponseUtility responseUtility;
+
+    @Autowired
+    private TransportUtils transportUtils;
 
     @PostMapping(EndPointReferrer.SEND_EMAIL_OTP)
     private ResponseEntity<EncryptedResponse> sendEmailOtp(@RequestBody @NotNull EncryptedPayload encryptedPayload, HttpServletRequest request) throws Exception {
@@ -64,6 +69,16 @@ public class CommunicationController {
 //        return new ResponseEntity<>(communicationService.validateOtpResetPassword(encryptedPayload, request), HttpStatus.OK);
         BaseResponse baseResponse = communicationService.validateOtpResetPassword(encryptedPayload, request);
         return responseUtility.encryptedResponse(request, baseResponse);
+
+    }
+
+    @PostMapping("send-email")
+    private ResponseEntity<BaseResponse> sendEmail(@RequestBody @NotNull MailRequest mailRequest) throws Exception {
+
+        logger.debug("Inside sendEmail");
+
+        return new ResponseEntity<>(transportUtils.sendEmail(mailRequest), HttpStatus.OK);
+
 
     }
 }

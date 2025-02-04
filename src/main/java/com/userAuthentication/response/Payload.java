@@ -2,6 +2,7 @@ package com.userAuthentication.response;
 
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.springframework.util.Assert;
 
@@ -10,6 +11,7 @@ import org.springframework.util.Assert;
  * @author rahul
  */
 @ToString
+@NoArgsConstructor
 public class Payload<T> {
 
     @JsonProperty("payLoad")

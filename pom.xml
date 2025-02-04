@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.0.12</version>
+		<version>3.4.2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.userAuthentication</groupId>
@@ -138,7 +138,7 @@
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20230227</version>
+			<version>20250107</version>
 		</dependency>
 
 		<dependency>
@@ -168,19 +168,21 @@
 			<artifactId>mongo-java-driver</artifactId>
 			<version>3.12.8</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/javax.servlet/servlet-api -->
-		<!--        <dependency>-->
-		<!--            <groupId>javax.servlet</groupId>-->
-		<!--            <artifactId>servlet-api</artifactId>-->
-		<!--            <version>2.5</version>-->
-		<!--            <scope>provided</scope>-->
-		<!--        </dependency>-->
 
-		<!--        <dependency>-->
-		<!--            <groupId>org.springframework</groupId>-->
-		<!--            <artifactId>spring-webmvc</artifactId>-->
-		<!--            <version>5.3.9</version> &lt;!&ndash; Use the version that matches your Spring version &ndash;&gt;-->
-		<!--        </dependency>-->
+		<!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-netflix-eureka-client -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+			<version>4.2.0</version>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-openfeign -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-openfeign</artifactId>
+			<version>4.2.0</version>
+		</dependency>
+
 
 	</dependencies>
 	<profiles>
