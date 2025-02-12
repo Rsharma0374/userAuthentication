@@ -29,8 +29,8 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationEntryPoint point;
 
-    @Autowired
-    private JwtFilter jwtFilter;
+//    @Autowired
+//    private JwtFilter jwtFilter;
 
 
     @Bean
@@ -38,13 +38,13 @@ public class SecurityConfig {
 
         return httpSecurity.csrf().disable()
                 .authorizeHttpRequests(req -> req
-                        .requestMatchers( "/auth/user-login","/auth/create-user","/auth/forget-password", "communications/*", "/auth/validate-tfa-otp", "/api/key", "/api/data").permitAll()
+                        .requestMatchers( "/**").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(point))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+//                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 

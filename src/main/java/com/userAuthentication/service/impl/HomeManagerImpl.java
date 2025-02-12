@@ -63,19 +63,12 @@ public class HomeManagerImpl implements HomeManager {
     private ResponseUtility responseUtility;
 
     @Override
-    public BaseResponse login(EncryptedPayload encryptedPayload, HttpServletRequest httpRequest) throws Exception {
+    public BaseResponse login(LoginRequest loginRequest, HttpServletRequest httpRequest) throws Exception {
         logger.info("Inside login request");
         LoginResponse loginResponse = new LoginResponse();
-        LoginRequest loginRequest = null;
         Collection<Error> errors = new ArrayList<>();
         BaseResponse baseResponse = null;
-        String key = responseUtility.getKeyFromHeader(httpRequest);
         try {
-            //Decrypt payload
-            String decryptedPayload = AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
-            if (StringUtils.isNoneBlank(decryptedPayload)) {
-                loginRequest = JsonUtils.parseJson(decryptedPayload, LoginRequest.class);
-
                 if (null == loginRequest) {
                     logger.error(ErrorCodes.LOGIN_BAD_REQUEST);
                     errors.add(Error.builder()
@@ -115,17 +108,6 @@ public class HomeManagerImpl implements HomeManager {
                         baseResponse = responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                     }
                 }
-            } else {
-                logger.error("Error occurred while decrypting the payload");
-                errors.add(Error.builder()
-                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
-                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
-                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
-                        .level(Error.SEVERITY.HIGH.name())
-                        .build());
-                baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
-            }
-
         } catch (Exception ex) {
             Error error = new Error();
             error.setMessage(ex.getMessage());
@@ -147,10 +129,7 @@ public class HomeManagerImpl implements HomeManager {
             Map<String, String> additionalInfo = new HashMap<>();
             emailOtpRequest.setAdditionalInfo(additionalInfo);
             additionalInfo.put(Constants.FULL_NAME, userRegistry.getFullName());
-            EncryptedPayload encryptedPayload = new EncryptedPayload();
-            encryptedPayload.setEncryptedPayload(AESUtil.encrypt(JsonUtils.objectToString(emailOtpRequest), responseUtility.getKeyFromHeader(httpRequest)));
-
-            baseResponse = communicationService.sendEmailOtp(encryptedPayload, httpRequest);
+            baseResponse = communicationService.sendEmailOtp(emailOtpRequest, httpRequest);
             logger.warn("BaseResponse received is {}", baseResponse);
             if (null != baseResponse && null != baseResponse.getPayload() && null != baseResponse.getPayload().getT()) {
                 EmailOtpResponse emailOtpResponse = (EmailOtpResponse) baseResponse.getPayload().getT();
@@ -189,18 +168,12 @@ public class HomeManagerImpl implements HomeManager {
 
     }
 
-    public BaseResponse createUser(EncryptedPayload encryptedPayload, HttpServletRequest httpRequest) {
+    public BaseResponse createUser(UserCreation userCreation, HttpServletRequest httpRequest) {
         logger.info("Inside Create user method");
         GenericResponse genericResponse = new GenericResponse();
         BaseResponse baseResponse = null;
-        UserCreation userCreation = null;
         Collection<Error> errors = new ArrayList<>();
-        String key = responseUtility.getKeyFromHeader(httpRequest);
         try {
-            String decryptedPayload = AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
-            if (StringUtils.isNoneBlank(decryptedPayload)) {
-                userCreation = JsonUtils.parseJson(decryptedPayload, UserCreation.class);
-
                 if (userCreation == null) {
                     errors.add(Error.builder()
                             .message(ErrorCodes.USER_CREATION_REQUEST_OBJECT_NULL)
@@ -238,16 +211,6 @@ public class HomeManagerImpl implements HomeManager {
                             .build());
                     baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
                 }
-            } else {
-                logger.error("Error occurred while decrypting the payload");
-                errors.add(Error.builder()
-                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
-                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
-                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
-                        .level(Error.SEVERITY.HIGH.name())
-                        .build());
-                baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
-            }
 
         } catch (Exception ex) {
             Error error = new Error();
@@ -318,17 +281,12 @@ public class HomeManagerImpl implements HomeManager {
     }
 
     @Override
-    public BaseResponse validate2faOtp(EncryptedPayload encryptedPayload, HttpServletRequest request) {
+    public BaseResponse validate2faOtp(ValidateOtpRequest validateOtpRequest, HttpServletRequest request) {
         logger.info("Inside validate 2Fa Otp");
         LoginResponse loginResponse = new LoginResponse();
-        ValidateOtpRequest validateOtpRequest = null;
         BaseResponse baseResponse = null;
         Collection<Error> errors = new ArrayList<>();
-        String key = responseUtility.getKeyFromHeader(request);
         try {
-            String decryptedPayload= AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
-            if (StringUtils.isNoneBlank(decryptedPayload)) {
-                validateOtpRequest = JsonUtils.parseJson(decryptedPayload, ValidateOtpRequest.class);
                 if (null == validateOtpRequest) {
                     logger.error(ErrorCodes.VALIDATE_OTP_BAD_REQUEST);
                     errors.add(Error.builder()
@@ -339,22 +297,12 @@ public class HomeManagerImpl implements HomeManager {
                             .build());
                     baseResponse = responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                 } else {
-                    baseResponse = communicationService.validateEmailOtp(encryptedPayload, request);
+                    baseResponse = communicationService.validateEmailOtp(validateOtpRequest, request);
                     if (null != baseResponse && null != baseResponse.getPayload() && null != baseResponse.getPayload().getT()) {
                         loginResponse = (LoginResponse) baseResponse.getPayload().getT();
                         loginResponse.setToken(jwtService.generateToken(validateOtpRequest.getUserName()));
                     }
                 }
-            } else {
-                logger.error("Error occurred while decrypting the payload");
-                errors.add(Error.builder()
-                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
-                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
-                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
-                        .level(Error.SEVERITY.HIGH.name())
-                        .build());
-                baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
-            }
 
         } catch (Exception e) {
             logger.error("Exception occurred while validating 2FA otp with probable cause - ", e);
@@ -441,14 +389,12 @@ public class HomeManagerImpl implements HomeManager {
     }
 
     @Override
-    public BaseResponse logout(EncryptedPayload payload, HttpServletRequest httpServletRequest) {
+    public BaseResponse logout(LogoutRequest logoutRequest, HttpServletRequest httpServletRequest) {
         logger.info("Inside logout method");
         BaseResponse baseResponse = null;
         GenericResponse genericResponse = new GenericResponse();
-        String key = responseUtility.getKeyFromHeader(httpServletRequest);
 
         try {
-            String decryptedPayload = AESUtil.decrypt(payload.getEncryptedPayload(), key);
             String authHeader = httpServletRequest.getHeader("Authorization");
             String opaqueToken = authHeader.substring(7);
             redisService.clearKeyFromRedis(opaqueToken);
@@ -466,18 +412,12 @@ public class HomeManagerImpl implements HomeManager {
     }
 
     @Override
-    public BaseResponse forgotPassword(EncryptedPayload payload, HttpServletRequest httpServletRequest) {
+    public BaseResponse forgotPassword(ForgotPasswordRequest forgotPasswordRequest, HttpServletRequest httpServletRequest) {
         logger.info("Inside forgotPassword method");
         BaseResponse baseResponse = null;
         EmailOtpResponse emailOtpResponse = new EmailOtpResponse();
         Collection<Error> errors = new ArrayList<>();
-        String key = responseUtility.getKeyFromHeader(httpServletRequest);
         try {
-            String decryptedPayload = AESUtil.decrypt(payload.getEncryptedPayload(), key);
-            if (StringUtils.isNotBlank(decryptedPayload)) {
-                // Convert the decrypted string to a Java class
-                ObjectMapper objectMapper = new ObjectMapper();
-                ForgotPasswordRequest forgotPasswordRequest = objectMapper.readValue(decryptedPayload, ForgotPasswordRequest.class);
                 if (null == forgotPasswordRequest || StringUtils.isBlank(forgotPasswordRequest.getUserIdentifier())) {
                     logger.error(ErrorCodes.FORGOT_PASSWORD_BAD_REQUEST);
                     errors.add(Error.builder()
@@ -495,9 +435,7 @@ public class HomeManagerImpl implements HomeManager {
                         emailOtpRequest.setProductName(forgotPasswordRequest.getProductName());
                         emailOtpRequest.setOtpRequired(true);
                         emailOtpRequest.setEmailType("FORGOT_PASSWORD_OTP");
-                        EncryptedPayload encryptedPayload = new EncryptedPayload();
-                        encryptedPayload.setEncryptedPayload(AESUtil.encrypt(JsonUtils.objectToString(emailOtpRequest), key));
-                        baseResponse = communicationService.sendEmailOtp(encryptedPayload, httpServletRequest);
+                        baseResponse = communicationService.sendEmailOtp(emailOtpRequest, httpServletRequest);
 
                     } else {
                         emailOtpResponse.setSuccess(true);
@@ -506,18 +444,6 @@ public class HomeManagerImpl implements HomeManager {
                         baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, emailOtpResponse);
                     }
                 }
-            } else {
-                logger.error("Error occurred while decrypting the payload");
-                errors.add(Error.builder()
-                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
-                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
-                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
-                        .level(Error.SEVERITY.HIGH.name())
-                        .build());
-                baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
-            }
-
-
         } catch (Exception e) {
             logger.error("Exception occurred while forgotPassword with probable cause ", e);
             Error error = new Error();

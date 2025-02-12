@@ -13,6 +13,7 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 
 public class EncryptDecryptService {
@@ -22,8 +23,12 @@ public class EncryptDecryptService {
 
     public static String encryptText(String password) throws Exception {
         String secretKey = (String) CacheConfig.CACHE.get(SECRET_KEY);
+        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+
         byte[] iv = generateRandomIV();
-        SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "AES");
+        // Trim or pad to 32 bytes (AES-256)
+        keyBytes = Arrays.copyOf(keyBytes, 32);
+        SecretKeySpec secretKeySpec = new SecretKeySpec(keyBytes, "AES");
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
         cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, new IvParameterSpec(iv));
         byte[] encryptedPassword = cipher.doFinal(password.getBytes(StandardCharsets.UTF_8));
@@ -43,6 +48,9 @@ public class EncryptDecryptService {
     public static String decryptedTextOrReturnSame(String encryptedText) {
         try {
             String secretKey = (String) CacheConfig.CACHE.get(SECRET_KEY);
+            byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+            keyBytes = Arrays.copyOf(keyBytes, 32);
+
 
             // Base64 decode
             byte[] combined = Base64.getDecoder().decode(encryptedText);
@@ -54,7 +62,7 @@ public class EncryptDecryptService {
             System.arraycopy(combined, 16, encryptedPasswordBytes, 0, encryptedPasswordBytes.length);
 
             // Create secret key and cipher
-            SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "AES");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(keyBytes, "AES");
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, new IvParameterSpec(iv));
 

@@ -1,6 +1,7 @@
 package com.userAuthentication.service;
 
 import com.userAuthentication.service.redis.RedisService;
+import com.userAuthentication.utility.ResponseUtility;
 import com.userAuthentication.utility.TokenGenerator;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -13,13 +14,9 @@ import org.springframework.stereotype.Service;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.UUID;
 
 @Service
 public class JWTService {
@@ -27,17 +24,26 @@ public class JWTService {
     @Autowired
     private RedisService redisService;
 
-    private String secretKey = "";
+    private static String secretKey = "";
+    public static final String SECRET_KEY = "SECRET_KEY";
+    private static final String USER_AUTH_PROPERTIES_PATH = "/opt/configs/userAuth.properties";
 
-    public JWTService() {
-        try {
-            KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
-            SecretKey key = keyGenerator.generateKey();
-            secretKey = Base64.getEncoder().encodeToString(key.getEncoded());
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
+    static {
+        Properties properties = ResponseUtility.fetchProperties(USER_AUTH_PROPERTIES_PATH);
+        if (null != properties) {
+            secretKey = properties.getProperty(SECRET_KEY);
         }
     }
+//
+//    public JWTService() {
+//        try {
+//            KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
+//            SecretKey key = keyGenerator.generateKey();
+//            secretKey = Base64.getEncoder().encodeToString(key.getEncoded());
+//        } catch (NoSuchAlgorithmException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     public String generateToken(String userName) {
         Map<String, Object> claims = new HashMap<>();
@@ -79,9 +85,9 @@ public class JWTService {
                 .getPayload();
     }
 
-    public boolean validateToken(String token, UserDetails userDetails) {
+    public boolean validateToken(String token, String requestUsername) {
         final String username = extractUserName(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        return (username.equals(requestUsername) && !isTokenExpired(token));
     }
 
     private boolean isTokenExpired(String token) {

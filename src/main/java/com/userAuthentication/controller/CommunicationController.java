@@ -39,36 +39,33 @@ public class CommunicationController {
     private TransportUtils transportUtils;
 
     @PostMapping(EndPointReferrer.SEND_EMAIL_OTP)
-    private ResponseEntity<EncryptedResponse> sendEmailOtp(@RequestBody @NotNull EncryptedPayload encryptedPayload, HttpServletRequest request) throws Exception {
+    private ResponseEntity<BaseResponse> sendEmailOtp(@RequestBody @NotNull EmailOtpRequest emailOtpRequest, HttpServletRequest request) throws Exception {
 
         logger.debug(Constants.CONTROLLER_STARTED, EndPointReferrer.SEND_EMAIL_OTP);
 
-//        return new ResponseEntity<>(communicationService.sendEmailOtp(emailOtpRequest), HttpStatus.OK);
 
-        BaseResponse baseResponse = communicationService.sendEmailOtp(encryptedPayload, request);
-        return responseUtility.encryptedResponse(request, baseResponse);
+        BaseResponse baseResponse = communicationService.sendEmailOtp(emailOtpRequest, request);
+        return new ResponseEntity<>(baseResponse, HttpStatus.OK);
 
     }
 
     @PostMapping(EndPointReferrer.VALIDATE_EMAIL_OTP)
-    private ResponseEntity<EncryptedResponse> validateEmailOtp(@RequestBody @NotNull EncryptedPayload encryptedPayload, HttpServletRequest request) throws Exception {
+    private ResponseEntity<BaseResponse> validateEmailOtp(@RequestBody @NotNull ValidateOtpRequest validateOtpRequest, HttpServletRequest request) throws Exception {
 
         logger.debug(Constants.CONTROLLER_STARTED, EndPointReferrer.VALIDATE_EMAIL_OTP);
 
-//        return new ResponseEntity<>(communicationService.validateEmailOtp(encryptedPayload, request), HttpStatus.OK);
 
-        BaseResponse baseResponse = communicationService.validateEmailOtp(encryptedPayload, request);
-        return responseUtility.encryptedResponse(request, baseResponse);
+        BaseResponse baseResponse = communicationService.validateEmailOtp(validateOtpRequest, request);
+        return new ResponseEntity<>(baseResponse, HttpStatus.OK);
     }
 
     @PostMapping(EndPointReferrer.VALIDATE_OTP_RESET_PASSWORD)
-    private ResponseEntity<EncryptedResponse> validateOtpResetPassword(@RequestBody @NotNull EncryptedPayload encryptedPayload, HttpServletRequest request) throws Exception {
+    private ResponseEntity<BaseResponse> validateOtpResetPassword(@RequestBody @NotNull ValidateOtpRequest validateOtpRequest, HttpServletRequest request) throws Exception {
 
         logger.debug(Constants.CONTROLLER_STARTED, EndPointReferrer.VALIDATE_OTP_RESET_PASSWORD);
 
-//        return new ResponseEntity<>(communicationService.validateOtpResetPassword(encryptedPayload, request), HttpStatus.OK);
-        BaseResponse baseResponse = communicationService.validateOtpResetPassword(encryptedPayload, request);
-        return responseUtility.encryptedResponse(request, baseResponse);
+        BaseResponse baseResponse = communicationService.validateOtpResetPassword(validateOtpRequest, request);
+        return new ResponseEntity<>(baseResponse, HttpStatus.OK);
 
     }
 

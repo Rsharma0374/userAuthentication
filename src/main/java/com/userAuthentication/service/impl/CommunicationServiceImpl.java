@@ -58,19 +58,14 @@ public class CommunicationServiceImpl implements CommunicationService {
     private TransportUtils transportUtils;
 
     @Override
-    public BaseResponse sendEmailOtp(EncryptedPayload encryptedPayload, HttpServletRequest httpServletRequest) {
+    public BaseResponse sendEmailOtp(EmailOtpRequest emailOtpRequest, HttpServletRequest httpServletRequest) {
         BaseResponse baseResponse = null;
         MailRequest mailRequest = new MailRequest();
         MailResponse mailResponse = new MailResponse();
         EmailReqResLog emailReqResLog = new EmailReqResLog();
         EmailOtpResponse emailOtpResponse = new EmailOtpResponse();
-        EmailOtpRequest emailOtpRequest = null;
         Collection<Error> errors = new ArrayList<>();
-        String key = responseUtility.getKeyFromHeader(httpServletRequest);
         try {
-            String decryptedPayload= AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
-            if (StringUtils.isNoneBlank(decryptedPayload)) {
-                emailOtpRequest = JsonUtils.parseJson(decryptedPayload, EmailOtpRequest.class);
                 EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(emailOtpRequest.getEmailType(), emailOtpRequest.getProductName().getName(), emailOtpRequest.isOtpRequired());
                 logger.debug("Email config is {}", emailConfiguration);
 
@@ -120,16 +115,7 @@ public class CommunicationServiceImpl implements CommunicationService {
                             .build());
                     baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
                 }
-            } else {
-                logger.error("Error occurred while decrypting the payload");
-                errors.add(Error.builder()
-                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
-                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
-                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
-                        .level(Error.SEVERITY.HIGH.name())
-                        .build());
-                baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
-            }
+
 
 
         } catch (Exception e) {
@@ -205,20 +191,15 @@ public class CommunicationServiceImpl implements CommunicationService {
     }
 
     @Override
-    public BaseResponse validateEmailOtp(@NotNull EncryptedPayload encryptedPayload, HttpServletRequest request) {
+    public BaseResponse validateEmailOtp(@NotNull ValidateOtpRequest validateOtpRequest, HttpServletRequest request) {
         logger.info("Inside validateEmailOtp");
         int attemptCount = 0;
         boolean isAttemptValid = false;
         LoginResponse loginResponse = new LoginResponse();
         BaseResponse baseResponse = null;
-        ValidateOtpRequest validateOtpRequest;
         Collection<Error> errors = new ArrayList<>();
         EmailReqResLog emailReqResLog = null;
-        String key = responseUtility.getKeyFromHeader(request);
         try {
-            String decryptedPayload= AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
-            if (StringUtils.isNoneBlank(decryptedPayload)) {
-                validateOtpRequest = JsonUtils.parseJson(decryptedPayload, ValidateOtpRequest.class);
                 if (null == validateOtpRequest) {
                     logger.error(ErrorCodes.VALIDATE_OTP_BAD_REQUEST);
                     errors.add(Error.builder()
@@ -275,16 +256,6 @@ public class CommunicationServiceImpl implements CommunicationService {
                         baseResponse = responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                     }
                 }
-            } else {
-                logger.error("Error occurred while decrypting the payload");
-                errors.add(Error.builder()
-                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
-                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
-                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
-                        .level(Error.SEVERITY.HIGH.name())
-                        .build());
-                baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
-            }
 
         } catch (Exception e) {
             logger.error("Exception occurred while validating 2FA otp with probable cause - ", e);
@@ -301,18 +272,14 @@ public class CommunicationServiceImpl implements CommunicationService {
     }
 
     @Override
-    public BaseResponse validateOtpResetPassword(EncryptedPayload encryptedPayload, HttpServletRequest request) {
+    public BaseResponse validateOtpResetPassword(ValidateOtpRequest validateOtpRequest, HttpServletRequest request) {
         BaseResponse baseResponse = null;
         int attemptCount = 0;
         boolean isAttemptValid = false;
         Collection<Error> errors = new ArrayList<>();
-        String key = responseUtility.getKeyFromHeader(request);
 
         ValidateOtpResponse validateOtpResponse = new ValidateOtpResponse();
         try {
-            String decryptedPayload = AESUtil.decrypt(encryptedPayload.getEncryptedPayload(), key);
-            if (StringUtils.isNoneBlank(decryptedPayload)) {
-                ValidateOtpRequest validateOtpRequest = JsonUtils.parseJson(decryptedPayload, ValidateOtpRequest.class);
                 if (null == validateOtpRequest) {
                     logger.error(ErrorCodes.VALIDATE_OTP_BAD_REQUEST);
                     errors.add(Error.builder()
@@ -367,17 +334,6 @@ public class CommunicationServiceImpl implements CommunicationService {
                         baseResponse = responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
                     }
                 }
-
-            } else {
-                logger.error("Error occurred while decrypting the payload");
-                errors.add(Error.builder()
-                        .message(ErrorCodes.SOMETHING_WENT_WRONG)
-                        .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
-                        .errorType(Error.ERROR_TYPE.SYSTEM.toValue())
-                        .level(Error.SEVERITY.HIGH.name())
-                        .build());
-                baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, errors);
-            }
 
         } catch (Exception ex) {
             logger.error("Exception occurred while validation Otp with probable cause - ", ex);

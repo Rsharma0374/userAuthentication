@@ -11,16 +11,16 @@ import javax.validation.constraints.NotNull;
 
 public interface HomeManager {
 
-    BaseResponse login(EncryptedPayload encryptedPayload, HttpServletRequest httpRequest)throws Exception;
+    BaseResponse login(LoginRequest loginRequest, HttpServletRequest httpRequest)throws Exception;
 
-    BaseResponse createUser(EncryptedPayload encryptedPayload, HttpServletRequest httpRequest)throws Exception;
+    BaseResponse createUser(UserCreation userCreation, HttpServletRequest httpRequest)throws Exception;
 
     BaseResponse sendEmailOtp(EmailOtpRequest emailOtpRequest);
 
-    BaseResponse validate2faOtp(EncryptedPayload encryptedPayload, HttpServletRequest httpRequest)throws Exception;
+    BaseResponse validate2faOtp(ValidateOtpRequest validateOtpRequest, HttpServletRequest httpRequest)throws Exception;
 
-    BaseResponse logout(EncryptedPayload encryptedPayload, HttpServletRequest httpServletRequest);
+    BaseResponse logout(LogoutRequest logoutRequest, HttpServletRequest httpServletRequest);
 
-    BaseResponse forgotPassword(EncryptedPayload payload, HttpServletRequest httpServletRequest);
+    BaseResponse forgotPassword(ForgotPasswordRequest forgotPasswordRequest, HttpServletRequest httpServletRequest);
 
 }

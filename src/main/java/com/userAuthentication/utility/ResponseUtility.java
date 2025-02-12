@@ -201,18 +201,5 @@ public class ResponseUtility {
         return errors;
     }
 
-    public String getKeyFromHeader(HttpServletRequest httpRequest) {
-        String id = httpRequest.getHeader("sKeyId");
-        return (String) redisService.getValueFromRedis(id);
-    }
-
-    public @org.jetbrains.annotations.NotNull ResponseEntity<EncryptedResponse> encryptedResponse(HttpServletRequest httpRequest, BaseResponse baseResponse) throws Exception {
-        // Convert BaseResponse to JSON String
-        String jsonResponse = JsonUtils.toString(baseResponse);
-        String encryptedResponse = AESUtil.encrypt(jsonResponse, getKeyFromHeader(httpRequest));
-        EncryptedResponse response = new EncryptedResponse();
-        response.setResponse(encryptedResponse);
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
 
 }

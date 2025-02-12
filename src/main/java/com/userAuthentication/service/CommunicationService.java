@@ -10,9 +10,9 @@ import javax.validation.constraints.NotNull;
 
 public interface CommunicationService {
 
-    BaseResponse sendEmailOtp(@NotNull EncryptedPayload encryptedPayload, HttpServletRequest httpServletRequest);
+    BaseResponse sendEmailOtp(@NotNull EmailOtpRequest emailOtpRequest, HttpServletRequest httpServletRequest);
 
-    BaseResponse validateEmailOtp(@NotNull EncryptedPayload encryptedPayload, HttpServletRequest request);
+    BaseResponse validateEmailOtp(@NotNull ValidateOtpRequest validateOtpRequest, HttpServletRequest request);
 
-    BaseResponse validateOtpResetPassword(@NotNull EncryptedPayload encryptedPayload, HttpServletRequest request);
+    BaseResponse validateOtpResetPassword(@NotNull ValidateOtpRequest validateOtpRequest, HttpServletRequest request);
 }
