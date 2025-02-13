@@ -2,7 +2,7 @@
 
 spring:
   application:
-    name: auth-service
+    name: AUTH-SERVICE
 
 server:
   port: 10001
