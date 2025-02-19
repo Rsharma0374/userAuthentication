@@ -483,11 +483,22 @@ public class HomeManagerImpl implements HomeManager {
                 UserRegistry userRegistry = mongoService.getUserByUsernameorEmailAndProduct(changePasswordRequest.getUserIdentifier(), changePasswordRequest.getUserIdentifier(), changePasswordRequest.getProductName().getName());
 
                 if (null!= userRegistry) {
-                    String hashedPassword = EncryptDecryptService.encryptText(changePasswordRequest.getNewPassword());
-                    mongoService.updatePasswordByEmailOrUserNameAndProduct(changePasswordRequest.getUserIdentifier(), null, hashedPassword, changePasswordRequest.getProductName().getName());
-                    genericResponse.setResponseMessage("Password changed successfully");
-                    genericResponse.setStatus(String.valueOf(HttpStatus.OK.value()));
-                    baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
+                    String decryptedPassword = EncryptDecryptService.decryptedTextOrReturnSame(userRegistry.getPassword());
+                    if (!decryptedPassword.equalsIgnoreCase(changePasswordRequest.getOldPassword())) {
+                        errors.add(Error.builder()
+                                .message("Invalid current password.")
+                                .errorCode(String.valueOf(Error.ERROR_TYPE.DATABASE.toCode()))
+                                .errorType(Error.ERROR_TYPE.DATABASE.toValue())
+                                .level(Error.SEVERITY.HIGH.name())
+                                .build());
+                        baseResponse = responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                    } else {
+                        String hashedPassword = EncryptDecryptService.encryptText(changePasswordRequest.getNewPassword());
+                        mongoService.updatePasswordByEmailOrUserNameAndProduct(changePasswordRequest.getUserIdentifier(), null, hashedPassword, changePasswordRequest.getProductName().getName());
+                        genericResponse.setResponseMessage("Password changed successfully");
+                        genericResponse.setStatus(String.valueOf(HttpStatus.OK.value()));
+                        baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
+                    }
 
                 } else {
                     String message = String.format("no case match for identifier {} for product {}", changePasswordRequest.getUserIdentifier(), changePasswordRequest.getProductName());
