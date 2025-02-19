@@ -357,7 +357,7 @@ public class CommunicationServiceImpl implements CommunicationService {
             if (null != userRegistry) {
                 String password = responseUtility.generateStringAgainstLength(10);
                 String hashedPassword = EncryptDecryptService.encryptText(password);
-                mongoService.updatePasswordByEmailAndProduct(emailId, hashedPassword, productName);
+                mongoService.updatePasswordByEmailOrUserNameAndProduct(null, emailId, hashedPassword, productName);
 
                 EmailConfiguration emailConfiguration = mongoService.getEmailConfigByProductAndType(Constants.RESET_PASSWORD, productName, false);
                 if (null == emailConfiguration) {
