@@ -20,7 +20,7 @@ public interface MongoService {
 
     UserCreation getUserWithEmail(String email);
 
-    void updatePasswordByEmailAndProduct(String emailId, String password, String productName);
+    void updatePasswordByEmailOrUserNameAndProduct(String userName, String emailId, String password, String productName);
 
     boolean saveUserRegistry(UserRegistry userRegistry);
 

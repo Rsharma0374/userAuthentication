@@ -201,5 +201,17 @@ public class ResponseUtility {
         return errors;
     }
 
+    public Collection<Error> getNoContentFoundError() {
+        Collection<Error> errors = new ArrayList<>();
+        errors.add(Error.builder()
+                .message("No content found")
+                .errorCode(String.valueOf(Error.ERROR_TYPE.SYSTEM.toCode()))
+                .errorType(Error.ERROR_TYPE.SYSTEM.name())
+                .level(Error.SEVERITY.HIGH.name())
+                .build());
+
+        return errors;
+    }
+
 
 }

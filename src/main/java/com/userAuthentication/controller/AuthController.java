@@ -123,4 +123,14 @@ public class AuthController {
     }
 
 
+    @PostMapping(EndPointReferrer.CHANGE_PASSWORD)
+    public ResponseEntity<BaseResponse> changePassword(
+            @RequestBody @NotNull ChangePasswordRequest changePasswordRequest, HttpServletRequest httpServletRequest) throws Exception {
+
+        logger.info(Constants.CONTROLLER_STARTED, EndPointReferrer.CHANGE_PASSWORD);
+
+        BaseResponse baseResponse = homeManager.changePassword(changePasswordRequest, httpServletRequest);
+        return new ResponseEntity<>(baseResponse, HttpStatus.OK);
+
+    }
 }

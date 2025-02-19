@@ -1,27 +1,25 @@
 package com.userAuthentication.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.userAuthentication.configuration.EmailConfiguration;
 import com.userAuthentication.constant.*;
 import com.userAuthentication.dao.MongoService;
-import com.userAuthentication.model.GenericResponse;
 import com.userAuthentication.model.email.EmailReqResLog;
 import com.userAuthentication.model.email.MailRequest;
 import com.userAuthentication.model.email.MailResponse;
 import com.userAuthentication.model.user.UserRegistry;
+//import com.userAuthentication.repository.EmailConfigRepository;
 import com.userAuthentication.request.*;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.response.Error;
+import com.userAuthentication.response.GenericResponse;
 import com.userAuthentication.response.email.EmailOtpResponse;
 import com.userAuthentication.response.login.LoginResponse;
-import com.userAuthentication.security.AESUtil;
 import com.userAuthentication.security.EncryptDecryptService;
 import com.userAuthentication.service.CommunicationService;
 import com.userAuthentication.service.HomeManager;
 import com.userAuthentication.service.JWTService;
 import com.userAuthentication.service.redis.RedisService;
 import com.userAuthentication.service.utility.TransportUtils;
-import com.userAuthentication.utility.JsonUtils;
 import com.userAuthentication.utility.ResponseUtility;
 import com.userAuthentication.utility.TokenGenerator;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,6 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import javax.validation.constraints.NotNull;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -61,6 +60,9 @@ public class HomeManagerImpl implements HomeManager {
 
     @Autowired
     private ResponseUtility responseUtility;
+
+//    @Autowired
+//    private EmailConfigRepository emailConfigRepository;
 
     @Override
     public BaseResponse login(LoginRequest loginRequest, HttpServletRequest httpRequest) throws Exception {
@@ -446,6 +448,62 @@ public class HomeManagerImpl implements HomeManager {
                 }
         } catch (Exception e) {
             logger.error("Exception occurred while forgotPassword with probable cause ", e);
+            Error error = new Error();
+            error.setMessage(e.getMessage());
+            baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));
+        }
+        return baseResponse;
+    }
+
+//    @Override
+//    public BaseResponse getEmailConfigByType(String type) {
+//        EmailConfiguration emailConfiguration = emailConfigRepository.getByEmailType(type);
+//        if (null == emailConfiguration) {
+//            return responseUtility.getBaseResponse(HttpStatus.NO_CONTENT, responseUtility.getNoContentFoundError());
+//        }
+//        return responseUtility.getBaseResponse(HttpStatus.OK, emailConfiguration);
+//    }
+
+    @Override
+    public BaseResponse changePassword(@NotNull ChangePasswordRequest changePasswordRequest, HttpServletRequest httpServletRequest) {
+        BaseResponse baseResponse = null;
+        GenericResponse genericResponse = new GenericResponse();
+        try {
+            Collection<Error> errors = new ArrayList<>();
+            if (null == changePasswordRequest || StringUtils.isBlank(changePasswordRequest.getOldPassword()) || StringUtils.isBlank(changePasswordRequest.getNewPassword())) {
+                logger.error(ErrorCodes.CHANGE_PASSWORD_BAD_REQUEST);
+                errors.add(Error.builder()
+                        .message(ErrorCodes.CHANGE_PASSWORD_BAD_REQUEST)
+                        .errorCode(String.valueOf(Error.ERROR_TYPE.BAD_REQUEST.toCode()))
+                        .errorType(Error.ERROR_TYPE.BAD_REQUEST.toValue())
+                        .level(Error.SEVERITY.HIGH.name())
+                        .build());
+                baseResponse = responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+            } else {
+                UserRegistry userRegistry = mongoService.getUserByUsernameorEmailAndProduct(changePasswordRequest.getUserIdentifier(), changePasswordRequest.getUserIdentifier(), changePasswordRequest.getProductName().getName());
+
+                if (null!= userRegistry) {
+                    String hashedPassword = EncryptDecryptService.encryptText(changePasswordRequest.getNewPassword());
+                    mongoService.updatePasswordByEmailOrUserNameAndProduct(changePasswordRequest.getUserIdentifier(), null, hashedPassword, changePasswordRequest.getProductName().getName());
+                    genericResponse.setResponseMessage("Password changed successfully");
+                    genericResponse.setStatus(String.valueOf(HttpStatus.OK.value()));
+                    baseResponse = responseUtility.getBaseResponse(HttpStatus.OK, genericResponse);
+
+                } else {
+                    String message = String.format("no case match for identifier {} for product {}", changePasswordRequest.getUserIdentifier(), changePasswordRequest.getProductName());
+                    logger.error(message);
+                    errors.add(Error.builder()
+                            .message(message)
+                            .errorCode(String.valueOf(Error.ERROR_TYPE.BAD_REQUEST.toCode()))
+                            .errorType(Error.ERROR_TYPE.BAD_REQUEST.toValue())
+                            .level(Error.SEVERITY.HIGH.name())
+                            .build());
+                    baseResponse = responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Exception occurred while changePassword with probable cause ", e);
             Error error = new Error();
             error.setMessage(e.getMessage());
             baseResponse = responseUtility.getBaseResponse(HttpStatus.INTERNAL_SERVER_ERROR, Collections.singleton(error));

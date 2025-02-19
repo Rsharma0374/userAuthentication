@@ -23,4 +23,7 @@ public interface HomeManager {
 
     BaseResponse forgotPassword(ForgotPasswordRequest forgotPasswordRequest, HttpServletRequest httpServletRequest);
 
+//    BaseResponse getEmailConfigByType(String type);
+
+    BaseResponse changePassword(@NotNull ChangePasswordRequest changePasswordRequest, HttpServletRequest httpServletRequest);
 }

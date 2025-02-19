@@ -165,13 +165,16 @@ public class MongoServiceImpl implements MongoService {
     }
 
     @Override
-    public void updatePasswordByEmailAndProduct(String emailId, String password, String productName) {
+    public void updatePasswordByEmailOrUserNameAndProduct(String userName, String emailId, String password, String productName) {
         logger.info("Inside update Password method");
 
         try {
             Query query = new Query();
-            query.addCriteria(Criteria.where("emailId").is(emailId)
-                    .and("productName").is(productName)
+            query.addCriteria(Criteria.where("productName").is(productName)
+                    .orOperator(
+                            Criteria.where("emailId").is(emailId),
+                            Criteria.where("userName").is(userName)
+                    )
                     .and("accountActive").is(true));
 
             Update update = new Update();

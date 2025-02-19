@@ -20,4 +20,6 @@ public class EndPointReferrer {
 
     public static final String  VALIDATE_TOKEN = "validate-token";
 
+    public static final String  CHANGE_PASSWORD = "change-password";
+
 }

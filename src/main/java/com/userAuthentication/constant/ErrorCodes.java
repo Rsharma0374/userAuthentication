@@ -15,5 +15,7 @@ public class ErrorCodes {
     public static final String VALIDATE_OTP_BAD_REQUEST = "Validate otp request is null.";
     public static final String SMS_SENDING_FAIL_TRY_AGAIN = "Sms sending failed, try again";
     public static final String LOGIN_BAD_REQUEST = "Login request is null.";
+    public static final String CHANGE_PASSWORD_BAD_REQUEST = "Change password request is null or new password or old password are blank";
+
 
 }
