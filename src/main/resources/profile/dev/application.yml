@@ -44,3 +44,13 @@ pass:
     user:
       create:
         url: http://localhost:10003/password-manager/create-user
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always

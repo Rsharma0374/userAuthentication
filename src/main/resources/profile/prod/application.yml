@@ -36,3 +36,15 @@ pass:
     user:
       create:
         url: https://auth.guardianservices.in/password-manager/create-user
+
+
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
