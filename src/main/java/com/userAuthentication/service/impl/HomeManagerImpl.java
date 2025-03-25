@@ -124,7 +124,7 @@ public class HomeManagerImpl implements HomeManager {
         BaseResponse baseResponse = null;
         try {
             EmailOtpRequest emailOtpRequest = new EmailOtpRequest();
-            emailOtpRequest.setEmailId(userRegistry.getEmailId());
+            emailOtpRequest.setEmailId(StringUtils.isNotBlank(userRegistry.getEmailId()) ? userRegistry.getEmailId() : userRegistry.getUserName());
             emailOtpRequest.setOtpRequired(true);
             emailOtpRequest.setProductName(productName);
             emailOtpRequest.setEmailType("2FA_OTP");
@@ -318,7 +318,7 @@ public class HomeManagerImpl implements HomeManager {
     private boolean createAndSaveUserDetails(UserCreation userCreation) {
         boolean success = false;
         try {
-            UserRegistry userRegistry = new UserRegistry(userCreation.getUserName(), userCreation.getEmail(), userCreation.getFullName(), userCreation.getGender(), userCreation.getDateOfBirth(), userCreation.getProductName(), true, new Date(), new Date());
+            UserRegistry userRegistry = new UserRegistry(userCreation.getUserName(), StringUtils.isNotBlank(userCreation.getEmail()) ? userCreation.getEmail() : userCreation.getUserName(), userCreation.getFullName(), userCreation.getGender(), userCreation.getDateOfBirth(), userCreation.getProductName(), true, new Date(), new Date());
             String encryptedPassword = EncryptDecryptService.encryptText(userCreation.getPassword());
             userRegistry.setPassword(encryptedPassword);
             success = mongoService.saveUserRegistry(userRegistry);
