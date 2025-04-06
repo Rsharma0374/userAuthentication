@@ -521,4 +521,14 @@ public class HomeManagerImpl implements HomeManager {
         }
         return baseResponse;
     }
+
+    @Override
+    public String getEmailByUsername(String username, ProductName productName) {
+        logger.info("Inside get email bu username for username {} and productName {}", username, productName.getName());
+        UserRegistry userRegistry = mongoService.getUserByUsernameAndProduct(username, productName);
+        if (null != userRegistry) {
+            return userRegistry.getEmailId();
+        }
+        return null;
+    }
 }

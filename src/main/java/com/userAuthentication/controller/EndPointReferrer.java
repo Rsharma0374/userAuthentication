@@ -22,4 +22,6 @@ public class EndPointReferrer {
 
     public static final String  CHANGE_PASSWORD = "change-password";
 
+    public static final String  GET_EMAIL_BY_USERNAME = "get-email-by-username";
+
 }

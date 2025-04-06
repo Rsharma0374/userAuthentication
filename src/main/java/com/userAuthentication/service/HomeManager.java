@@ -1,5 +1,6 @@
 package com.userAuthentication.service;
 
+import com.userAuthentication.constant.ProductName;
 import com.userAuthentication.request.*;
 import com.userAuthentication.response.BaseResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,4 +27,6 @@ public interface HomeManager {
 //    BaseResponse getEmailConfigByType(String type);
 
     BaseResponse changePassword(@NotNull ChangePasswordRequest changePasswordRequest, HttpServletRequest httpServletRequest);
+
+    String getEmailByUsername(String username, ProductName productName);
 }

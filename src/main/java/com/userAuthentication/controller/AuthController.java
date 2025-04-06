@@ -2,6 +2,7 @@ package com.userAuthentication.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.userAuthentication.constant.Constants;
+import com.userAuthentication.constant.ProductName;
 import com.userAuthentication.request.*;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.response.EncryptedResponse;
@@ -131,6 +132,17 @@ public class AuthController {
 
         BaseResponse baseResponse = homeManager.changePassword(changePasswordRequest, httpServletRequest);
         return new ResponseEntity<>(baseResponse, HttpStatus.OK);
+
+    }
+
+
+    @GetMapping(EndPointReferrer.GET_EMAIL_BY_USERNAME + "/{sUsername}/{sProduct}")
+    public String getEmailByUsername(@PathVariable("sUsername") String username,
+                                     @PathVariable("sProduct") ProductName productName) throws Exception {
+
+        logger.info(Constants.CONTROLLER_STARTED, EndPointReferrer.GET_EMAIL_BY_USERNAME);
+
+        return homeManager.getEmailByUsername(username, productName);
 
     }
 }

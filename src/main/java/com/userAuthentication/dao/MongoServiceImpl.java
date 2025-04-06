@@ -2,6 +2,7 @@ package com.userAuthentication.dao;
 
 import com.userAuthentication.configuration.EmailConfiguration;
 import com.userAuthentication.constant.Constants;
+import com.userAuthentication.constant.ProductName;
 import com.userAuthentication.model.email.EmailReqResLog;
 import com.userAuthentication.model.user.UserRegistry;
 import com.userAuthentication.request.UserCreation;
@@ -230,5 +231,16 @@ public class MongoServiceImpl implements MongoService {
             logger.error("Exception occurred while getUserByUsernameAndProduct for username {} with probable cause - ", userName, e);
             return null;
         }
+    }
+
+    @Override
+    public UserRegistry getUserByUsernameAndProduct(String username, ProductName productName) {
+        logger.info("Inside get User by getUserByUsernameAndProduct method");
+        Query query = new Query();
+        query.addCriteria(Criteria.where("productName").is(productName)
+                .and("accountActive").is(true)
+                .and("userName").is(username));
+
+        return mongoTemplate.findOne(query, UserRegistry.class);
     }
 }

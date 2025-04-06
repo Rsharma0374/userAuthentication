@@ -1,6 +1,7 @@
 package com.userAuthentication.dao;
 
 import com.userAuthentication.configuration.EmailConfiguration;
+import com.userAuthentication.constant.ProductName;
 import com.userAuthentication.model.email.EmailReqResLog;
 import com.userAuthentication.model.user.UserRegistry;
 import com.userAuthentication.request.UserCreation;
@@ -31,4 +32,6 @@ public interface MongoService {
     void saveEmailOtpReqRes(EmailReqResLog emailReqResLog);
 
     UserRegistry getUserByUsernameorEmailAndProduct(String userName, String emailId, String productName);
+
+    UserRegistry getUserByUsernameAndProduct(String username, ProductName productName);
 }
