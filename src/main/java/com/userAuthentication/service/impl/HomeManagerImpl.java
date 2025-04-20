@@ -97,7 +97,20 @@ public class HomeManagerImpl implements HomeManager {
 
                     String decryptedPassword = EncryptDecryptService.decryptedTextOrReturnSame(userRegistry.getPassword());
 
-                    if (EncryptDecryptService.checkPassword(decryptedPassword, loginRequest.getShaPassword())) {
+                    if (loginRequest.isCrypto()) {
+                        String hashedPassword = responseUtility.encryptThisString(decryptedPassword);
+                        if (loginRequest.getShaPassword().equals(hashedPassword)) {
+                            baseResponse = send2FAOtp(loginResponse, userRegistry, loginRequest.getProductName(), httpRequest);
+                        } else {
+                            errors.add(Error.builder()
+                                    .message("Invalid Credentials")
+                                    .errorCode(String.valueOf(Error.ERROR_TYPE.DATABASE.toCode()))
+                                    .errorType(Error.ERROR_TYPE.DATABASE.toValue())
+                                    .level(Error.SEVERITY.HIGH.name())
+                                    .build());
+                            baseResponse = responseUtility.getBaseResponse(HttpStatus.BAD_REQUEST, errors);
+                        }
+                    }else if (EncryptDecryptService.checkPassword(decryptedPassword, loginRequest.getShaPassword())) {
                         //send Otp to registered email for 2FA
                         baseResponse = send2FAOtp(loginResponse, userRegistry, loginRequest.getProductName(), httpRequest);
                     } else {

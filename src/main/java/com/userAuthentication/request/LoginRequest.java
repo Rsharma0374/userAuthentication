@@ -25,4 +25,7 @@ public class LoginRequest {
 
     @JsonProperty("sProductName")
     private ProductName productName;
+
+    @JsonProperty("bCrypto")
+    private boolean crypto;
 }
