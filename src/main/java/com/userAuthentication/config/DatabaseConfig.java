@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.gridfs.GridFsTemplate;
 
 import javax.sql.DataSource;
+import java.util.Map;
 import java.util.Properties;
 
 @Configuration
@@ -20,12 +21,12 @@ public class DatabaseConfig {
 //  Mongo DB connection
     private static String mongoUri = "";
     public static final String MONGO_URI = "MONGO_URI";
-    private static final String USER_AUTH_PROPERTIES_PATH = "/opt/configs/userAuth.properties";
-
     static {
-        Properties properties = ResponseUtility.fetchProperties(USER_AUTH_PROPERTIES_PATH);
-        if (null != properties) {
-            mongoUri = properties.getProperty(MONGO_URI);
+        try {
+            Map config = InfisicalConfig.fetchConfig("UserAuthConfig");
+            mongoUri = null != config ? (String) config.get(MONGO_URI) : null;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -195,6 +195,11 @@
 			<version>1.14.3</version>
 		</dependency>
 
+		<dependency>
+			<groupId>com.infisical</groupId>
+			<artifactId>sdk</artifactId>
+			<version>3.0.2</version>
+		</dependency>
 
 	</dependencies>
 	<profiles>
