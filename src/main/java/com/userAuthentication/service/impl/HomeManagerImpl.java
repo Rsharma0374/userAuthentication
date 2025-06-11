@@ -87,7 +87,7 @@ public class HomeManagerImpl implements HomeManager {
 
                     if (userRegistry == null) {
                         errors.add(Error.builder()
-                                .message("No User found against provided data")
+                                .message("Invalid credentials or data")
                                 .errorCode(String.valueOf(Error.ERROR_TYPE.DATABASE.toCode()))
                                 .errorType(Error.ERROR_TYPE.DATABASE.toValue())
                                 .level(Error.SEVERITY.HIGH.name())
