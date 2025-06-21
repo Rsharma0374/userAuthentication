@@ -1,5 +1,6 @@
 package com.userAuthentication.service;
 
+import com.userAuthentication.config.InfisicalConfig;
 import com.userAuthentication.service.redis.RedisService;
 import com.userAuthentication.utility.ResponseUtility;
 import com.userAuthentication.utility.TokenGenerator;
@@ -26,24 +27,15 @@ public class JWTService {
 
     private static String secretKey = "";
     public static final String SECRET_KEY = "SECRET_KEY";
-    private static final String USER_AUTH_PROPERTIES_PATH = "/opt/configs/userAuth.properties";
 
     static {
-        Properties properties = ResponseUtility.fetchProperties(USER_AUTH_PROPERTIES_PATH);
-        if (null != properties) {
-            secretKey = properties.getProperty(SECRET_KEY);
+        try {
+            Map config = InfisicalConfig.fetchConfig("UserAuthConfig");
+            secretKey = null != config ? config.get(SECRET_KEY).toString() : null;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
-//
-//    public JWTService() {
-//        try {
-//            KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
-//            SecretKey key = keyGenerator.generateKey();
-//            secretKey = Base64.getEncoder().encodeToString(key.getEncoded());
-//        } catch (NoSuchAlgorithmException e) {
-//            e.printStackTrace();
-//        }
-//    }
 
     public String generateToken(String userName) {
         Map<String, Object> claims = new HashMap<>();
