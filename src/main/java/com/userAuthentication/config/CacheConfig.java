@@ -11,15 +11,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CacheConfig {
     private static String secretKey = "";
     public static Map<String , Object> CACHE = new ConcurrentHashMap<String,Object>();
-    private static final String USER_AUTH_PROPERTIES_PATH = "/opt/configs/userAuth.properties";
     private static final String SECRET_KEY = "SECRET_KEY";
-
     static {
-        Properties properties = ResponseUtility.fetchProperties(USER_AUTH_PROPERTIES_PATH);
-        if (null != properties) {
-            secretKey = properties.getProperty(SECRET_KEY);
+        try {
+            Map config = InfisicalConfig.fetchConfig("UserAuthConfig");
+            CACHE.put(SECRET_KEY, null != config ? config.get(SECRET_KEY) : null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-
-        CACHE.put(SECRET_KEY, secretKey);
     }
+
 }

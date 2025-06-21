@@ -11,27 +11,32 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+
+import java.util.Map;
 import java.util.Properties;
 
 @Configuration
 public class MyConfig {
 
-    private static final String USER_AUTH_PROPERTIES_PATH = "/opt/configs/userAuth.properties";
 
 
-    //    public static final long JWT_TOKEN_VALIDITY =  60;
     public static String userName = "";
     public static String rawPassword = "";
     public static final String USER_NAME = "USER_NAME";
     public static final String RAW_PASSWORD = "RAW_PASSWORD";
 
     static {
-            Properties properties = ResponseUtility.fetchProperties(USER_AUTH_PROPERTIES_PATH);
-            if (null != properties) {
-                userName = properties.getProperty(USER_NAME);
-                rawPassword = properties.getProperty(RAW_PASSWORD);
+        try {
+            Map config = InfisicalConfig.fetchConfig("UserAuthConfig");
+            if (config != null) {
+                userName = (String) config.get(USER_NAME);
+                rawPassword = (String) config.get(RAW_PASSWORD);
             }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
+
     @Bean
     public UserDetailsService userDetailsService() {
         UserDetails userDetails = User.builder().
