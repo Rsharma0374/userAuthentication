@@ -2,7 +2,9 @@ package com.userAuthentication.service.utility;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.userAuthentication.feign.EmailInterface;
+import com.userAuthentication.feign.PassManagerInterface;
 import com.userAuthentication.model.email.MailRequest;
+import com.userAuthentication.request.UserCreation;
 import com.userAuthentication.response.BaseResponse;
 import com.userAuthentication.utility.ResponseUtility;
 import org.apache.commons.lang3.StringUtils;
@@ -27,6 +29,18 @@ public class TransportUtils {
 
     @Autowired
     EmailInterface emailInterface;
+
+    @Autowired
+    PassManagerInterface passManagerInterface;
+
+    public void createUser(UserCreation userCreation) {
+        try {
+            ResponseEntity<BaseResponse> responseEntity = passManagerInterface.createUser(userCreation);
+            logger.info(null != responseEntity && null != responseEntity.getBody() ? responseEntity.getBody().toString() : "Response is null");
+        } catch (Exception e) {
+            logger.error("Exception cause due to ", e);
+        }
+    }
 
     public BaseResponse sendEmail(MailRequest mailRequest) {
         try {

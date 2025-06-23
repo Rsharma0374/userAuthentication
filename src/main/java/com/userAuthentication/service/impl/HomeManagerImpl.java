@@ -60,6 +60,8 @@ public class HomeManagerImpl implements HomeManager {
 
     @Autowired
     private ResponseUtility responseUtility;
+    @Autowired
+    private TransportUtils transportUtils;
 
 //    @Autowired
 //    private EmailConfigRepository emailConfigRepository;
@@ -337,7 +339,7 @@ public class HomeManagerImpl implements HomeManager {
             success = mongoService.saveUserRegistry(userRegistry);
             if (success && userCreation.getProductName().getName().equalsIgnoreCase(ProductName.PASSWORD_MANAGER.getName())) {
                 //crete user in pass manager
-                TransportUtils.postJsonRequest(userCreation, passManagerUserCreateUrl, BaseResponse.class);
+                transportUtils.createUser(userCreation);
             }
 
         } catch (Exception e) {
