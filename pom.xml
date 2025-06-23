@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.3</version>
+		<version>3.4.2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.userAuthentication</groupId>
@@ -148,7 +148,7 @@
 		<dependency>
 			<groupId>redis.clients</groupId>
 			<artifactId>jedis</artifactId>
-			<version>5.1.0</version>
+			<version>4.3.1</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/commons-beanutils/commons-beanutils -->
@@ -173,27 +173,27 @@
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-			<version>4.3.0</version>
+			<version>4.2.0</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-openfeign -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-openfeign</artifactId>
-			<version>4.3.0</version>
+			<version>4.2.0</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-actuator</artifactId>
-		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.boot</groupId>-->
+<!--			<artifactId>spring-boot-starter-actuator</artifactId>-->
+<!--		</dependency>-->
 
-		<!-- https://mvnrepository.com/artifact/io.micrometer/micrometer-registry-prometheus -->
-		<dependency>
-			<groupId>io.micrometer</groupId>
-			<artifactId>micrometer-registry-prometheus</artifactId>
-			<version>1.14.3</version>
-		</dependency>
+<!--		&lt;!&ndash; https://mvnrepository.com/artifact/io.micrometer/micrometer-registry-prometheus &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>io.micrometer</groupId>-->
+<!--			<artifactId>micrometer-registry-prometheus</artifactId>-->
+<!--			<version>1.14.3</version>-->
+<!--		</dependency>-->
 
 		<dependency>
 			<groupId>com.infisical</groupId>
