@@ -13,6 +13,7 @@ import com.userAuthentication.service.redis.RedisService;
 import com.userAuthentication.utility.JsonUtils;
 import com.userAuthentication.utility.ResponseUtility;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,8 +51,13 @@ public class AuthController {
             @RequestBody @NotNull LoginRequest loginRequest,
             HttpServletRequest httpRequest) throws Exception {
 
+        BaseResponse baseResponse;
         logger.debug(Constants.CONTROLLER_STARTED, EndPointReferrer.LOGIN);
-        BaseResponse baseResponse = homeManager.login(loginRequest, httpRequest);
+        if (StringUtils.isNotBlank(loginRequest.getRequestType()) && loginRequest.getRequestType().equals("GOOGLE_LOGIN")) {
+            baseResponse =homeManager.loginWithGoogle(loginRequest, httpRequest);
+        } else {
+            baseResponse = homeManager.login(loginRequest, httpRequest);
+        }
         return new ResponseEntity<>(baseResponse, HttpStatus.OK);
 
     }

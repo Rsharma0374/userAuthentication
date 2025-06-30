@@ -28,8 +28,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import javax.validation.constraints.NotNull;
 import java.util.*;
@@ -545,5 +546,49 @@ public class HomeManagerImpl implements HomeManager {
             return userRegistry.getEmailId();
         }
         return null;
+    }
+
+    @Override
+    public BaseResponse loginWithGoogle(@NotNull LoginRequest loginRequest, HttpServletRequest httpRequest) {
+        String authToken = httpRequest.getHeader("Authorization");
+        String tokenInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
+        String emailId = httpRequest.getHeader("email");
+        LoginResponse loginResponse = new LoginResponse();
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(authToken.substring(7));
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    tokenInfoUrl, HttpMethod.GET, entity, Map.class);
+
+            Map<String, Object> userInfo = response.getBody();
+
+            // You can validate email, domain, etc.
+            String email = (String) userInfo.get("email");
+            Boolean verified = (Boolean) userInfo.get("email_verified");
+
+            if (verified != null && verified && StringUtils.isNotBlank(email)
+                    && StringUtils.isNotBlank(emailId) && email.equalsIgnoreCase(emailId)) {
+                // Proceed with login or registration
+                UserRegistry userRegistry = mongoService.getUserByUsernameorEmailAndProduct(null, emailId, loginRequest.getProductName().getName());
+                loginResponse.setStatus(StatusConstant.SUCCESS.name());
+                loginResponse.setResponse("One time password has been verified successfully.");
+                loginResponse.setUsername(userRegistry.getUserName());
+                loginResponse.setToken(jwtService.generateToken(userRegistry.getUserName()));
+                return responseUtility.getBaseResponse(HttpStatus.OK, loginResponse);
+            } else {
+                Error error = new Error();
+                error.setMessage("Invalid Google access token");
+                return responseUtility.getBaseResponse(HttpStatus.UNAUTHORIZED, Collections.singleton(error));
+            }
+
+        } catch (Exception e) {
+            logger.error("Exception occurred while loginWithGoogle with probable cause ", e);
+            Error error = new Error();
+            error.setMessage("Invalid Google access token");
+            return responseUtility.getBaseResponse(HttpStatus.UNAUTHORIZED, Collections.singleton(error));
+        }
     }
 }

@@ -29,4 +29,6 @@ public interface HomeManager {
     BaseResponse changePassword(@NotNull ChangePasswordRequest changePasswordRequest, HttpServletRequest httpServletRequest);
 
     String getEmailByUsername(String username, ProductName productName);
+
+    BaseResponse loginWithGoogle(@NotNull LoginRequest loginRequest, HttpServletRequest httpRequest);
 }

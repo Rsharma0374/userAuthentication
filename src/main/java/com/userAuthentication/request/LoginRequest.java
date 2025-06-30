@@ -28,4 +28,7 @@ public class LoginRequest {
 
     @JsonProperty("bCrypto")
     private boolean crypto;
+
+    @JsonProperty("sRequestType")
+    private String requestType;
 }
