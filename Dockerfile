@@ -1,18 +1,43 @@
-# Use an official OpenJDK runtime as a base image
-FROM openjdk:17-jdk-slim
+# Build Stage (Maven + Java 21)
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 
-# Set the working directory inside the container
-WORKDIR /userAuthentication
+WORKDIR /app
 
-# Copy the JAR file (or build the app if using source code)
-COPY target/*.jar userAuthentication.jar
+# Cache dependencies first (improves build speed)
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-# Create the logs directory inside the container
-RUN mkdir -p /opt/logs && chmod 755 /opt/logs
+# Build the application
+COPY src ./src
+RUN mvn clean package -DskipTests -P prod -B
 
-# Expose the port your app will run on
+# Verify JAR file exists (debugging)
+RUN ls -la /app/target/
+
+# Runtime Stage (Lightweight JRE)
+FROM eclipse-temurin:21-jre-alpine
+
+# Security: Non-root user
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring
+
+# Install curl for health checks (optional)
+USER root
+RUN apk add --no-cache curl
+USER spring
+
+WORKDIR /app
+
+# Copy JAR from build stage
+COPY --from=build --chown=spring:spring /app/target/*.jar auther-service.jar
+
+# JVM Tuning (Production Optimized)
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
+
+# Health check (Eureka Actuator)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:10001/actuator/health || exit 1
+
+# Run Eureka
 EXPOSE 10001
-
-# Define the command to run the app
-ENTRYPOINT ["java", "-jar", "userAuthentication.jar"]
-
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar auther-service.jar --spring.profiles.active=prod"]
