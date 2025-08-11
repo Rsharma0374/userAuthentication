@@ -31,12 +31,6 @@ WORKDIR /app
 # Copy JAR from build stage
 COPY --from=build --chown=spring:spring /app/target/*.jar auther-service.jar
 
-# JVM Tuning (Production Optimized)
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
-
-# Health check (Eureka Actuator)
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:10001/actuator/health || exit 1
 
 # Run Eureka
 EXPOSE 10001

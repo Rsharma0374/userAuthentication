@@ -7,9 +7,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient("PASS-MANAGER-SERVICE")
+@FeignClient(name = "pass-manager-service", url = "http://pass-manager-service:8080")
 public interface PassManagerInterface {
 
     @PostMapping("/password-manager/create-user")
-    public ResponseEntity<BaseResponse> createUser(@RequestBody UserCreation userCreation);
+    ResponseEntity<BaseResponse> createUser(@RequestBody UserCreation userCreation);
 }

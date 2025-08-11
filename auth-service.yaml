@@ -5,11 +5,10 @@ metadata:
   labels:
     app: auth-service
 spec:
-  type: NodePort
+  type: ClusterIP   # Internal access only
   ports:
-    - port: 10001
-      targetPort: 10001
-      nodePort: 30077   # in allowed range
+    - port: 10001         # Service port
+      targetPort: 10001   # Container port
       protocol: TCP
       name: http
   selector:

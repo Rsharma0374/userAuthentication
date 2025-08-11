@@ -9,10 +9,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient("EMAIL-SERVICE")
+@FeignClient(
+        name = "email-connector-service",
+        url = "${email.service.url}" // Read from application.yml
+)
 public interface EmailInterface {
 
-    @GetMapping("/welcome")
+    @GetMapping("/email-connector/welcome")
     public String welcome();
 
     @PostMapping("/email-connector/send-mail")
