@@ -29,9 +29,9 @@ USER spring
 WORKDIR /app
 
 # Copy JAR from build stage
-COPY --from=build --chown=spring:spring /app/target/*.jar auther-service.jar
+COPY --from=build --chown=spring:spring /app/target/*.jar auth-service.jar
 
 
 # Run Eureka
 EXPOSE 10001
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar auther-service.jar --spring.profiles.active=prod"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar auth-service.jar --spring.profiles.active=prod"]
