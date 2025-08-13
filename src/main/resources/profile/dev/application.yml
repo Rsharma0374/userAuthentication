@@ -4,6 +4,8 @@ spring:
 
 server:
   port: 10001
+  servlet:
+    context-path: /auth-service
 
 # Direct internal URL of Email Service (K8s DNS or Docker Compose service name)
 email:
