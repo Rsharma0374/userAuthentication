@@ -4,6 +4,7 @@ import com.userAuthentication.domain.model.User;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.UserResource;
@@ -40,36 +41,50 @@ public class KeycloakService {
      */
     public UserRepresentation createUserInKeycloak(User user, String password) {
         log.debug("Creating user in Keycloak: {}", user.getUsername());
+        try {
+            UserRepresentation userRep = new UserRepresentation();
+            userRep.setUsername(user.getUsername());
+            userRep.setEmail(user.getEmail());
+            userRep.setFirstName(user.getFirstName());
+            userRep.setLastName(user.getLastName());
+            userRep.setEnabled(user.getEnabled());
+            userRep.setEmailVerified(user.getEmailVerified());
 
-        UserRepresentation userRep = new UserRepresentation();
-        userRep.setUsername(user.getUsername());
-        userRep.setEmail(user.getEmail());
-        userRep.setFirstName(user.getFirstName());
-        userRep.setLastName(user.getLastName());
-        userRep.setEnabled(user.getEnabled());
-        userRep.setEmailVerified(user.getEmailVerified());
+            // Set up credentials
+            CredentialRepresentation credential = new CredentialRepresentation();
+            credential.setType(CredentialRepresentation.PASSWORD);
+            credential.setValue(password);
+            credential.setTemporary(false);
+            userRep.setCredentials(Collections.singletonList(credential));
 
-        // Set up credentials
-        CredentialRepresentation credential = new CredentialRepresentation();
-        credential.setType(CredentialRepresentation.PASSWORD);
-        credential.setValue(password);
-        credential.setTemporary(false);
-        userRep.setCredentials(Collections.singletonList(credential));
+            // Create user in Keycloak
+            Response response = getRealmResource().users().create(userRep);
 
-        // Create user in Keycloak
-        Response response = getRealmResource().users().create(userRep);
+            String responseBody = response.readEntity(String.class);
 
-        if (response.getStatus() != 201) {
-            log.error("Failed to create user in Keycloak. Status: {}", response.getStatus());
-            throw new RuntimeException("Failed to create user in Keycloak");
+            log.error("Keycloak Status: {}", response.getStatus());
+            log.error("Keycloak Response: {}", responseBody);
+
+            if (response.getStatus() != 201) {
+                throw new RuntimeException(
+                        "Failed to create user in Keycloak. Status: "
+                                + response.getStatus()
+                                + " Response: "
+                                + responseBody
+                );
+            }
+
+            // Extract user ID from response
+            String userId = getCreatedUserId(response);
+            userRep.setId(userId);
+
+            log.info("User created successfully in Keycloak with ID: {}", userId);
+            return userRep;
+        } catch (Exception e) {
+            log.error("Exception occurred while creating creds in keykloak for user {} with cause {}", user.getUsername(), ExceptionUtils.getStackTrace(e));
+            throw new RuntimeException(e.getMessage());
         }
 
-        // Extract user ID from response
-        String userId = getCreatedUserId(response);
-        userRep.setId(userId);
-
-        log.info("User created successfully in Keycloak with ID: {}", userId);
-        return userRep;
     }
 
     /**

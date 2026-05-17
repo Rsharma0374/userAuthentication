@@ -6,16 +6,19 @@ import com.userAuthentication.application.service.AuthService;
 import com.userAuthentication.web.dto.request.LoginRequest;
 import com.userAuthentication.web.dto.request.RefreshTokenRequest;
 import com.userAuthentication.web.dto.request.RegisterRequest;
+import com.userAuthentication.web.dto.response.ApiErrorResponse;
 import com.userAuthentication.web.dto.response.TokenResponse;
-import com.userAuthentication.web.dto.response.UserResponse;
 import com.userAuthentication.web.mapper.UserMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 /**
  * REST controller for authentication operations
@@ -39,18 +42,30 @@ public class AuthController {
      */
     @PostMapping("/login")
     @Operation(summary = "Login user", description = "Authenticates user and returns tokens")
-    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         log.debug("Login request for user: {}", request.getUsername());
 
-        LoginCommand command = new LoginCommand(
-                request.getUsername(),
-                request.getPassword(),
-                null, // ipAddress
-                null  // userAgent
-        );
+        try {
+            LoginCommand command = new LoginCommand(
+                    request.getUsername(),
+                    request.getPassword(),
+                    null, // ipAddress
+                    null  // userAgent
+            );
 
-        TokenResponse response = authService.login(command);
-        return ResponseEntity.ok(response);
+            TokenResponse response = authService.login(command);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error during login for user: {}", request.getUsername(), e);
+            ApiErrorResponse errorResponse = ApiErrorResponse.builder()
+                    .timestamp(LocalDateTime.now())
+                    .status(HttpStatus.UNAUTHORIZED.value())
+                    .error("Unauthorized")
+                    .message(e.getMessage())
+                    .path("/auth/login")
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
     }
 
     /**
@@ -61,19 +76,40 @@ public class AuthController {
      */
     @PostMapping("/register")
     @Operation(summary = "Register new user", description = "Creates a new user account")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         log.debug("Register request for user: {}", request.getUsername());
 
-        RegisterCommand command = new RegisterCommand(
-                request.getUsername(),
-                request.getEmail(),
-                request.getPassword(),
-                request.getFirstName(),
-                request.getLastName()
-        );
+        try {
+            RegisterCommand command = new RegisterCommand(
+                    request.getUsername(),
+                    request.getEmail(),
+                    request.getPassword(),
+                    request.getFirstName(),
+                    request.getLastName()
+            );
 
-        var user = authService.register(command);
-        return ResponseEntity.ok(userMapper.toResponse(user));
+            var user = authService.register(command);
+            return ResponseEntity.status(HttpStatus.CREATED).body(userMapper.toResponse(user));
+        } catch (Exception e) {
+            log.error("Error during registration for user: {}", request.getUsername(), e);
+            
+            HttpStatus status = HttpStatus.BAD_REQUEST;
+            String errorType = "Bad Request";
+            
+            if (e.getMessage() != null && (e.getMessage().contains("already exists") || e.getMessage().contains("already registered"))) {
+                status = HttpStatus.CONFLICT;
+                errorType = "Conflict";
+            }
+            
+            ApiErrorResponse errorResponse = ApiErrorResponse.builder()
+                    .timestamp(LocalDateTime.now())
+                    .status(status.value())
+                    .error(errorType)
+                    .message(e.getMessage())
+                    .path("/auth/register")
+                    .build();
+            return ResponseEntity.status(status).body(errorResponse);
+        }
     }
 
     /**
@@ -84,11 +120,23 @@ public class AuthController {
      */
     @PostMapping("/refresh")
     @Operation(summary = "Refresh token", description = "Gets new access token using refresh token")
-    public ResponseEntity<TokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<?> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         log.debug("Refresh token request");
 
-        TokenResponse response = authService.refreshToken(request.getRefreshToken());
-        return ResponseEntity.ok(response);
+        try {
+            TokenResponse response = authService.refreshToken(request.getRefreshToken());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error during token refresh", e);
+            ApiErrorResponse errorResponse = ApiErrorResponse.builder()
+                    .timestamp(LocalDateTime.now())
+                    .status(HttpStatus.UNAUTHORIZED.value())
+                    .error("Unauthorized")
+                    .message(e.getMessage())
+                    .path("/auth/refresh")
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
     }
 
     /**
@@ -99,10 +147,22 @@ public class AuthController {
      */
     @PostMapping("/logout")
     @Operation(summary = "Logout user", description = "Invalidates refresh token and logs out user")
-    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<?> logout(@Valid @RequestBody RefreshTokenRequest request) {
         log.debug("Logout request");
 
-        authService.logout(request.getRefreshToken());
-        return ResponseEntity.noContent().build();
+        try {
+            authService.logout(request.getRefreshToken());
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            log.error("Error during logout", e);
+            ApiErrorResponse errorResponse = ApiErrorResponse.builder()
+                    .timestamp(LocalDateTime.now())
+                    .status(HttpStatus.BAD_REQUEST.value())
+                    .error("Bad Request")
+                    .message(e.getMessage())
+                    .path("/auth/logout")
+                    .build();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
     }
 }

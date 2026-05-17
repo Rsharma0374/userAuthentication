@@ -1,5 +1,5 @@
 package com.userAuthentication.domain.model;
-import jakarta.persistence.*;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,57 +13,38 @@ import java.util.UUID;
 /**
  * User entity using Java 21 features
  */
-@Entity
-@Table(name = "users")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(unique = true, nullable = false)
     private String keycloakId;
 
-    @Column(unique = true, nullable = false)
     private String username;
 
-    @Column(unique = true, nullable = false)
     private String email;
 
     private String firstName;
     private String lastName;
 
-    @Column(nullable = false)
+    @Builder.Default
     private Boolean enabled = true;
 
+    @Builder.Default
     private Boolean emailVerified = false;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "role")
+    @Builder.Default
     private Set<String> roles = new HashSet<>();
 
+    @Builder.Default
     private Boolean mfaEnabled = false;
     private String mfaSecret;
     private LocalDateTime lastLogin;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 
     /**
      * Sealed interface for user status using Java 21 sealed classes

@@ -23,27 +23,25 @@ public class KeycloakConfig {
     @Value("${keycloak.admin.client-id}")
     private String clientId;
 
-    @Value("${keycloak.admin.username}")
-    private String username;
-
-    @Value("${keycloak.admin.password}")
-    private String password;
+    @Value("${keycloak.admin.client-secret}")
+    private String clientSecret;
 
     /**
      * Creates and configures Keycloak admin client bean
-     * Used for managing users, roles, and permissions in Keycloak
+     *
+     * Uses client credentials flow instead of password grant
      *
      * @return configured Keycloak admin client instance
      */
     @Bean
     public Keycloak keycloakAdminClient() {
+
         return KeycloakBuilder.builder()
                 .serverUrl(serverUrl)
                 .realm(realm)
                 .clientId(clientId)
-                .grantType(OAuth2Constants.PASSWORD)
-                .username(username)
-                .password(password)
+                .clientSecret(clientSecret)
+                .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
                 .build();
     }
 }

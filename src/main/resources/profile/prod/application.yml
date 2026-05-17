@@ -2,6 +2,12 @@ spring:
   application:
     name: AUTH-SERVICE
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_URL:https://keycloak.guardianservices.in}/realms/${KEYCLOAK_REALM:guardian-service}/protocol/openid-connect/certs
+
 server:
   port: 10001
 

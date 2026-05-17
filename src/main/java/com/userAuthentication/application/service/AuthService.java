@@ -20,6 +20,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -190,13 +191,14 @@ public class AuthService implements AuthUseCase {
                 .lastName(command.lastName())
                 .enabled(true)
                 .emailVerified(false)
-                .roles(Set.of("USER"))
+                .roles(new HashSet<>(Set.of("USER")))
                 .build();
 
-        user = userRepository.save(user);
         var keycloakUser = keycloakService.createUserInKeycloak(user, command.password());
         user.setKeycloakId(keycloakUser.getId());
         keycloakService.assignRoleToUser(keycloakUser.getId(), "USER");
+
+        log.info("User is {}", user);
         user = userRepository.save(user);
 
         // Publish user registered event
