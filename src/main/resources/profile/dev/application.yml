@@ -1,9 +1,29 @@
 spring:
   application:
-    name: AUTH-SERVICE
-
+    name: auth-service
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka.guardianservices.in:8761/eureka/
 server:
   port: 10001
+  servlet:
+    context-path: /auth-service
+
+
+keycloak:
+  auth-server-url: ${KEYCLOAK_URL:http://localhost:8080}
+  realm: ${KEYCLOAK_REALM:uam-realm}
+  resource: ${KEYCLOAK_CLIENT_ID:uam-client}
+  credentials:
+    secret: ${KEYCLOAK_CLIENT_SECRET:your-client-secret}
+  admin:
+    client-id: admin-cli
+    username: ${KEYCLOAK_ADMIN_USER:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+  ssl-required: external
+  use-resource-role-mappings: true
+  bearer-only: true
 
 # Direct internal URL of Email Service (K8s DNS or Docker Compose service name)
 email:
