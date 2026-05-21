@@ -85,7 +85,8 @@ public class AuthController {
                     request.getEmail(),
                     request.getPassword(),
                     request.getFirstName(),
-                    request.getLastName()
+                    request.getLastName(),
+                    request.getProduct()
             );
 
             var user = authService.register(command);

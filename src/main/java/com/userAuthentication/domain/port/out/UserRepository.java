@@ -1,6 +1,9 @@
 package com.userAuthentication.domain.port.out;
 
+import com.userAuthentication.domain.model.Product;
 import com.userAuthentication.domain.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -69,6 +72,14 @@ public interface UserRepository {
     List<User> findAll();
 
     /**
+     * Retrieves paginated users
+     *
+     * @param pageable pagination information
+     * @return page of users
+     */
+    Page<User> findAll(Pageable pageable);
+
+    /**
      * Deletes a user
      *
      * @param user user to delete
@@ -76,28 +87,20 @@ public interface UserRepository {
     void delete(User user);
 
     /**
-     * Checks if user exists by username
+     * Checks if user exists by username and product
      *
      * @param username username to check
+     * @param product product to check
      * @return true if user exists
      */
-    boolean existsByUsername(String username);
+    boolean existsByUsernameAndProduct(String username, Product product);
 
     /**
-     * Checks if user exists by email
+     * Checks if user exists by email and product
      *
      * @param email email to check
+     * @param product product to check
      * @return true if user exists
      */
-    boolean existsByEmail(String email);
-
-    /**
-     * Checks if user exists by username or email
-     *
-     * @param username username to check
-     * @param email email to check
-     * @return true if user exists
-     */
-    boolean existsByUsernameOrEmail(String username, String email);
+    boolean existsByEmailAndProduct(String email, Product product);
 }
-

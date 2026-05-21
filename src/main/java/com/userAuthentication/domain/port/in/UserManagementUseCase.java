@@ -3,6 +3,8 @@ package com.userAuthentication.domain.port.in;
 import com.userAuthentication.application.command.ChangePasswordCommand;
 import com.userAuthentication.application.command.ResetPasswordCommand;
 import com.userAuthentication.domain.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +37,14 @@ public interface UserManagementUseCase {
      * @return list of users
      */
     List<User> getAllUsers();
+
+    /**
+     * Retrieves paginated users
+     *
+     * @param pageable pagination info
+     * @return page of users
+     */
+    Page<User> getUsers(Pageable pageable);
 
     /**
      * Updates user profile

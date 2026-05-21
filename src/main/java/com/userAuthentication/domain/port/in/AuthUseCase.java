@@ -28,6 +28,14 @@ public interface AuthUseCase {
     User register(RegisterCommand command);
 
     /**
+     * Registers a new admin user
+     *
+     * @param command register command
+     * @return created admin user
+     */
+    User registerAdmin(RegisterCommand command);
+
+    /**
      * Refreshes access token
      *
      * @param refreshToken refresh token

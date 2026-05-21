@@ -1,5 +1,6 @@
 package com.userAuthentication.web.dto.response;
 
+import com.userAuthentication.domain.model.Product;
 import lombok.Builder;
 import lombok.Data;
 
@@ -18,5 +19,6 @@ public class UserResponse {
     private boolean emailVerified;
     private boolean mfaEnabled;
     private String[] roles;
+    private Product product;
     private LocalDateTime createdAt;
 }

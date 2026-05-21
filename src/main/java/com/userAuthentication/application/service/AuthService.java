@@ -3,6 +3,7 @@ package com.userAuthentication.application.service;
 import com.userAuthentication.application.command.*;
 import com.userAuthentication.domain.event.UserLoggedInEvent;
 import com.userAuthentication.domain.event.UserRegisteredEvent;
+import com.userAuthentication.domain.model.Product;
 import com.userAuthentication.domain.model.User;
 import com.userAuthentication.domain.port.in.AuthUseCase;
 import com.userAuthentication.domain.port.out.AuditEventPublisher;
@@ -119,10 +120,25 @@ public class AuthService implements AuthUseCase {
     public User register(RegisterCommand command) {
         log.debug("Registering new user: {}", command.username());
 
-        return switch (checkUserExists(command.username(), command.email())) {
-            case UserExists() -> throw new RuntimeException("User already exists");
-            case EmailExists() -> throw new RuntimeException("Email already registered");
-            case UserNotExists() -> createUser(command);
+        return switch (checkUserExists(command.username(), command.email(), command.product())) {
+            case UserExists() -> throw new RuntimeException("User already exists for this product");
+            case EmailExists() -> throw new RuntimeException("Email already registered for this product");
+            case UserNotExists() -> createUser(command, "USER", command.product());
+        };
+    }
+
+    /**
+     * Registers new admin user
+     */
+    @Transactional
+    @Override
+    public User registerAdmin(RegisterCommand command) {
+        log.debug("Registering new admin user: {}", command.username());
+
+        return switch (checkUserExists(command.username(), command.email(), null)) {
+            case UserExists() -> throw new RuntimeException("Admin user already exists");
+            case EmailExists() -> throw new RuntimeException("Email already registered for an admin user");
+            case UserNotExists() -> createUser(command, "ADMIN", null);
         };
     }
 
@@ -173,17 +189,17 @@ public class AuthService implements AuthUseCase {
     private record EmailExists() implements UserExistsResult {}
     private record UserNotExists() implements UserExistsResult {}
 
-    private UserExistsResult checkUserExists(String username, String email) {
-        if (userRepository.existsByUsername(username)) {
+    private UserExistsResult checkUserExists(String username, String email, Product product) {
+        if (userRepository.existsByUsernameAndProduct(username, product)) {
             return new UserExists();
         }
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.existsByEmailAndProduct(email, product)) {
             return new EmailExists();
         }
         return new UserNotExists();
     }
 
-    private User createUser(RegisterCommand command) {
+    private User createUser(RegisterCommand command, String roleName, Product product) {
         var user = User.builder()
                 .username(command.username())
                 .email(command.email())
@@ -191,12 +207,13 @@ public class AuthService implements AuthUseCase {
                 .lastName(command.lastName())
                 .enabled(true)
                 .emailVerified(false)
-                .roles(new HashSet<>(Set.of("USER")))
+                .roles(new HashSet<>(Set.of(roleName)))
+                .product(product)
                 .build();
 
         var keycloakUser = keycloakService.createUserInKeycloak(user, command.password());
         user.setKeycloakId(keycloakUser.getId());
-        keycloakService.assignRoleToUser(keycloakUser.getId(), "USER");
+        keycloakService.assignRoleToUser(keycloakUser.getId(), roleName);
 
         log.info("User is {}", user);
         user = userRepository.save(user);

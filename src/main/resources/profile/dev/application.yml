@@ -143,7 +143,7 @@ management:
 # Logging Configuration
 logging:
   level:
-    com.yourorg.uam: DEBUG
+    com.userAuthentication: DEBUG
     org.springframework.security: INFO
     org.springframework.cloud: INFO
     org.keycloak: INFO

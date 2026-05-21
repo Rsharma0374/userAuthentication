@@ -39,6 +39,8 @@ public class User {
     @Builder.Default
     private Set<String> roles = new HashSet<>();
 
+    private Product product;
+
     @Builder.Default
     private Boolean mfaEnabled = false;
     private String mfaSecret;

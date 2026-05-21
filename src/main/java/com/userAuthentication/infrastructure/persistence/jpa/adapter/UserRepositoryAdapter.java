@@ -1,10 +1,13 @@
 package com.userAuthentication.infrastructure.persistence.jpa.adapter;
 
+import com.userAuthentication.domain.model.Product;
 import com.userAuthentication.domain.model.User;
 import com.userAuthentication.domain.port.out.UserRepository;
 import com.userAuthentication.infrastructure.persistence.jpa.entity.UserJpaEntity;
 import com.userAuthentication.infrastructure.persistence.jpa.repository.UserJpaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -109,6 +112,17 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     /**
+     * Retrieves paginated users
+     *
+     * @param pageable pagination info
+     * @return page of domain users
+     */
+    @Override
+    public Page<User> findAll(Pageable pageable) {
+        return jpaRepository.findAll(pageable).map(this::toDomainEntity);
+    }
+
+    /**
      * Deletes user
      *
      * @param user user to delete
@@ -118,38 +132,14 @@ public class UserRepositoryAdapter implements UserRepository {
         jpaRepository.deleteById(user.getId());
     }
 
-    /**
-     * Checks if user exists by username
-     *
-     * @param username username
-     * @return true if exists
-     */
     @Override
-    public boolean existsByUsername(String username) {
-        return jpaRepository.existsByUsername(username);
+    public boolean existsByUsernameAndProduct(String username, Product product) {
+        return jpaRepository.existsByUsernameAndProduct(username, product);
     }
 
-    /**
-     * Checks if user exists by email
-     *
-     * @param email email
-     * @return true if exists
-     */
     @Override
-    public boolean existsByEmail(String email) {
-        return jpaRepository.existsByEmail(email);
-    }
-
-    /**
-     * Checks if user exists by username or email
-     *
-     * @param username username
-     * @param email email
-     * @return true if exists
-     */
-    @Override
-    public boolean existsByUsernameOrEmail(String username, String email) {
-        return jpaRepository.existsByUsernameOrEmail(username, email);
+    public boolean existsByEmailAndProduct(String email, Product product) {
+        return jpaRepository.existsByEmailAndProduct(email, product);
     }
 
     /**
@@ -172,6 +162,7 @@ public class UserRepositoryAdapter implements UserRepository {
                 .mfaSecret(user.getMfaSecret())
                 .lastLogin(user.getLastLogin())
                 .roles(user.getRoles())
+                .product(user.getProduct())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
@@ -197,6 +188,7 @@ public class UserRepositoryAdapter implements UserRepository {
                 .mfaSecret(entity.getMfaSecret())
                 .lastLogin(entity.getLastLogin())
                 .roles(entity.getRoles())
+                .product(entity.getProduct())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

@@ -1,14 +1,12 @@
 package com.userAuthentication.web.dto.request;
 
-import com.userAuthentication.domain.model.Product;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class RegisterRequest {
+public class AdminRegisterRequest {
 
     @NotBlank(message = "Username is required")
     @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
@@ -27,7 +25,4 @@ public class RegisterRequest {
 
     @NotBlank(message = "Last name is required")
     private String lastName;
-
-    @NotNull(message = "Product is required")
-    private Product product;
 }

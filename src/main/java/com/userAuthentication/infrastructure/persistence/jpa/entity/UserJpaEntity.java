@@ -1,5 +1,6 @@
 package com.userAuthentication.infrastructure.persistence.jpa.entity;
 
+import com.userAuthentication.domain.model.Product;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -60,6 +61,10 @@ public class UserJpaEntity {
             joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")
     private Set<String> roles = new HashSet<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "product")
+    private Product product;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

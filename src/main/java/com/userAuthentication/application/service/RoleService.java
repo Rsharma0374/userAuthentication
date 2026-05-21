@@ -109,12 +109,10 @@ public class RoleService {
      * @return list of role names
      */
     @Transactional(readOnly = true)
-    public List<String> getAllRoles() {
+    public List<Role> getAllRoles() {
         log.debug("Retrieving all roles");
         // In a real implementation, fetch from Keycloak or cache
-        return roleRepository.findAll().stream()
-                .map(Role::getName)
-                .toList();
+        return roleRepository.findAll();
     }
 
     /**

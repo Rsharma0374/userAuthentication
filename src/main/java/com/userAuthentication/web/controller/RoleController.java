@@ -4,6 +4,7 @@ import com.userAuthentication.application.command.AssignRoleCommand;
 import com.userAuthentication.application.command.CreateRoleCommand;
 import com.userAuthentication.application.command.RemoveRoleCommand;
 import com.userAuthentication.application.service.RoleService;
+import com.userAuthentication.domain.model.Role;
 import com.userAuthentication.web.dto.request.AssignRoleRequest;
 import com.userAuthentication.web.dto.request.CreateRoleRequest;
 import com.userAuthentication.web.dto.response.RoleResponse;
@@ -129,10 +130,14 @@ public class RoleController {
     public ResponseEntity<List<RoleResponse>> getAllRoles() {
         log.debug("Retrieving all roles");
 
-        List<String> roles = roleService.getAllRoles();
+        List<Role> roles = roleService.getAllRoles();
 
         List<RoleResponse> responses = roles.stream()
-                .map(role -> RoleResponse.builder().name(role).build())
+                .map(role -> RoleResponse.builder()
+                        .name(role.getName())
+                        .description(role.getDescription())
+                        .createdAt(role.getCreatedAt())
+                        .build())
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(responses);

@@ -1,18 +1,25 @@
 package com.userAuthentication.web.controller;
 
+import com.userAuthentication.application.command.RegisterCommand;
+import com.userAuthentication.application.service.AuthService;
 import com.userAuthentication.application.service.UserService;
 import com.userAuthentication.domain.model.User;
+import com.userAuthentication.web.dto.request.AdminRegisterRequest;
+import com.userAuthentication.web.dto.response.ApiErrorResponse;
 import com.userAuthentication.web.dto.response.UserResponse;
 import com.userAuthentication.web.mapper.UserMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,7 +37,53 @@ import java.util.stream.Collectors;
 public class AdminUserController {
 
     private final UserService userService;
+    private final AuthService authService;
     private final UserMapper userMapper;
+
+    /**
+     * Creates an admin user
+     *
+     * @param request registration request with admin user details
+     * @return created admin user response
+     */
+    @PostMapping("/admin-role")
+    @Operation(summary = "Create admin user", description = "Creates a new user with ADMIN role")
+    public ResponseEntity<?> createAdminUser(@Valid @RequestBody AdminRegisterRequest request) {
+        log.debug("Admin creating new admin user: {}", request.getUsername());
+
+        try {
+            RegisterCommand command = new RegisterCommand(
+                    request.getUsername(),
+                    request.getEmail(),
+                    request.getPassword(),
+                    request.getFirstName(),
+                    request.getLastName(),
+                    null // Admins typically don't belong to a specific product
+            );
+
+            var user = authService.registerAdmin(command);
+            return ResponseEntity.status(HttpStatus.CREATED).body(userMapper.toResponse(user));
+        } catch (Exception e) {
+            log.error("Error during admin creation for user: {}", request.getUsername(), e);
+
+            HttpStatus status = HttpStatus.BAD_REQUEST;
+            String errorType = "Bad Request";
+
+            if (e.getMessage() != null && (e.getMessage().contains("already exists") || e.getMessage().contains("already registered"))) {
+                status = HttpStatus.CONFLICT;
+                errorType = "Conflict";
+            }
+
+            ApiErrorResponse errorResponse = ApiErrorResponse.builder()
+                    .timestamp(LocalDateTime.now())
+                    .status(status.value())
+                    .error(errorType)
+                    .message(e.getMessage())
+                    .path("/admin/users/admin-role")
+                    .build();
+            return ResponseEntity.status(status).body(errorResponse);
+        }
+    }
 
     /**
      * Retrieves all users (admin only)

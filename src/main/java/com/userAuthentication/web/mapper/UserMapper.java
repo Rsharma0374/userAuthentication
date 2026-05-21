@@ -20,5 +20,6 @@ public interface UserMapper {
      */
     @Mapping(source = "id", target = "id")
     @Mapping(source = "roles", target = "roles")
+    @Mapping(source = "product", target = "product")
     UserResponse toResponse(User user);
 }

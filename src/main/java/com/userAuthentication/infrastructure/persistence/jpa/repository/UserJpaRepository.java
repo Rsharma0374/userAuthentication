@@ -1,7 +1,10 @@
 package com.userAuthentication.infrastructure.persistence.jpa.repository;
 
+import com.userAuthentication.domain.model.Product;
 import com.userAuthentication.infrastructure.persistence.jpa.entity.UserJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -47,27 +50,16 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
     Optional<UserJpaEntity> findByKeycloakId(String keycloakId);
 
     /**
-     * Checks if user exists by username
-     *
-     * @param username username to check
-     * @return true if exists
+     * Checks if user exists by username and product
+     * Handle null product for admin users
      */
-    boolean existsByUsername(String username);
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM UserJpaEntity u WHERE u.username = :username AND (u.product = :product OR (u.product IS NULL AND :product IS NULL))")
+    boolean existsByUsernameAndProduct(@Param("username") String username, @Param("product") Product product);
 
     /**
-     * Checks if user exists by email
-     *
-     * @param email email to check
-     * @return true if exists
+     * Checks if user exists by email and product
+     * Handle null product for admin users
      */
-    boolean existsByEmail(String email);
-
-    /**
-     * Checks if user exists by username or email
-     *
-     * @param username username to check
-     * @param email email to check
-     * @return true if exists
-     */
-    boolean existsByUsernameOrEmail(String username, String email);
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM UserJpaEntity u WHERE u.email = :email AND (u.product = :product OR (u.product IS NULL AND :product IS NULL))")
+    boolean existsByEmailAndProduct(@Param("email") String email, @Param("product") Product product);
 }

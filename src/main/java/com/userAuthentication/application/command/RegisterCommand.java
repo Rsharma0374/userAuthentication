@@ -1,5 +1,7 @@
 package com.userAuthentication.application.command;
 
+import com.userAuthentication.domain.model.Product;
+
 /**
  * Command object for user registration
  */
@@ -8,5 +10,6 @@ public record RegisterCommand(
     String email,
     String password,
     String firstName,
-    String lastName
+    String lastName,
+    Product product
 ) {}
