@@ -3,7 +3,8 @@ spring:
     name: auth-service
 
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+#    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}//use this for local kafka
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:152.67.3.253:9094}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -13,37 +14,6 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
-
-  datasource:
-    url: jdbc:postgresql://localhost:5432/uam_db
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
-      connection-timeout: 30000
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-    show-sql: false
-
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      timeout: 2000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
 
   security:
     oauth2:
@@ -72,31 +42,7 @@ server:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
 
-# Keycloak Configuration
-keycloak:
-  auth-server-url: ${KEYCLOAK_URL:https://keycloak.guardianservices.in}
 
-  # Your application realm
-  realm: ${KEYCLOAK_REALM:guardian-service}
-
-  # Client used for admin operations
-  resource: ${KEYCLOAK_CLIENT_ID:api-gateway}
-
-  credentials:
-    secret: ${KEYCLOAK_CLIENT_SECRET:BbH9EsDrDNeUPHmnSIXE5Hz9E29mpgCF}
-
-  admin:
-    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:api-gateway}
-    client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:BbH9EsDrDNeUPHmnSIXE5Hz9E29mpgCF}
-
-  ssl-required: external
-  use-resource-role-mappings: true
-
-  # IMPORTANT
-  bearer-only: false
-
-  public-client: false
-  principal-attribute: preferred_username
 # Email Service Configuration
 email:
   service:
@@ -152,8 +98,10 @@ logging:
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: logs/auth-service.log
-    max-size: 10MB
-    max-history: 30
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
 
 # Swagger/OpenAPI (if enabled)
 springdoc:

@@ -75,6 +75,13 @@
 			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
 
+		<!-- JEDIS -->
+		<dependency>
+			<groupId>redis.clients</groupId>
+			<artifactId>jedis</artifactId>
+			<version>4.3.1</version>
+		</dependency>
+
 		<!-- Swagger / OpenAPI 3 -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
@@ -149,6 +156,13 @@
 			<artifactId>postgresql</artifactId>
 			<version>${testcontainers.version}</version>
 			<scope>test</scope>
+		</dependency>
+
+		<!-- Infisical SDK -->
+		<dependency>
+			<groupId>com.infisical</groupId>
+			<artifactId>sdk</artifactId>
+			<version>3.0.2</version>
 		</dependency>
 	</dependencies>
 
