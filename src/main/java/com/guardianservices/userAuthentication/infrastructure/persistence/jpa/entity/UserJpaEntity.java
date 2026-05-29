@@ -1,6 +1,5 @@
 package com.guardianservices.userAuthentication.infrastructure.persistence.jpa.entity;
 
-import com.guardianservices.userAuthentication.domain.model.Product;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,7 +33,7 @@ public class UserJpaEntity {
     @Column(unique = true, nullable = false)
     private String username;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String email;
 
     @Column(name = "first_name")
@@ -58,18 +57,11 @@ public class UserJpaEntity {
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")
-    private Set<String> roles = new HashSet<>();
+    private String role;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_products",
-            joinColumns = @JoinColumn(name = "user_id"))
-    @Enumerated(EnumType.STRING)
     @Column(name = "product")
-    private List<Product> products = new ArrayList<>();
+    private String product;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

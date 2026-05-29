@@ -29,5 +29,5 @@ public class AdminRegisterRequest {
     @NotBlank(message = "Last name is required")
     private String lastName;
 
-    private Set<Product> products;
+    private String product;
 }

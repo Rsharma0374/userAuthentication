@@ -9,11 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -88,6 +84,12 @@ public class UserRepositoryAdapter implements UserRepository {
                 .map(this::toDomainEntity);
     }
 
+    @Override
+    public Optional<User> findByUsernameAndProduct(String username, String product) {
+        return jpaRepository.findByUsernameAndProduct(username, product)
+                .map(this::toDomainEntity);
+    }
+
     /**
      * Finds user by Keycloak ID
      *
@@ -143,6 +145,11 @@ public class UserRepositoryAdapter implements UserRepository {
         return jpaRepository.existsByEmail(email);
     }
 
+    @Override
+    public boolean existsByUsernameAndProduct(String username, String product) {
+        return jpaRepository.existsByUsernameAndProduct(username, product);
+    }
+
     /**
      * Converts domain User to JPA entity
      *
@@ -162,8 +169,8 @@ public class UserRepositoryAdapter implements UserRepository {
                 .mfaEnabled(user.getMfaEnabled())
                 .mfaSecret(user.getMfaSecret())
                 .lastLogin(user.getLastLogin())
-                .roles(user.getRoles())
-                .products(new ArrayList<>(user.getProducts()))
+                .role(user.getRole())
+                .product(user.getProduct())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
@@ -188,8 +195,8 @@ public class UserRepositoryAdapter implements UserRepository {
                 .mfaEnabled(entity.getMfaEnabled())
                 .mfaSecret(entity.getMfaSecret())
                 .lastLogin(entity.getLastLogin())
-                .roles(entity.getRoles())
-                .products(new HashSet<>(entity.getProducts()))
+                .role(entity.getRole())
+                .product(entity.getProduct())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

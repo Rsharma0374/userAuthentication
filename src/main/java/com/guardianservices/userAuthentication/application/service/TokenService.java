@@ -42,13 +42,13 @@ public class TokenService {
      */
     public void blockToken(String token, long expirySeconds) {
         log.debug("Blocking token");
-        tokenBlocklistPort.add(token, Duration.ofSeconds(expirySeconds));
+        tokenBlocklistPort.blockToken(token, Duration.ofSeconds(expirySeconds));
     }
 
     /**
      * Checks if a token is blocked (called by gateway via internal API)
      */
     public boolean isTokenBlocked(String token) {
-        return tokenBlocklistPort.isBlocked(token);
+        return tokenBlocklistPort.isTokenBlocked(token);
     }
 }

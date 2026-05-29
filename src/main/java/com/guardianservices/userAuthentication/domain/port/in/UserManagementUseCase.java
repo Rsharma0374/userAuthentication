@@ -71,14 +71,14 @@ public interface UserManagementUseCase {
      *
      * @param command change password command
      */
-    void changePassword(ChangePasswordCommand command);
+    void changePassword(ChangePasswordCommand command, String ipAddress);
 
-    /**
-     * Resets user password
-     *
-     * @param command reset password command
-     */
-    void resetPassword(ResetPasswordCommand command);
+//    /**
+//     * Resets user password
+//     *
+//     * @param command reset password command
+//     */
+//    void resetPassword(ResetPasswordCommand command);
 
     /**
      * Deletes user

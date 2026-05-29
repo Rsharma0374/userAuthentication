@@ -1,4 +1,4 @@
-package com.guardianservices.userAuthentication.web.controller;
+package com.guardianservices.userAuthentication.web.controller.admin;
 
 import com.guardianservices.userAuthentication.application.command.AssignRoleCommand;
 import com.guardianservices.userAuthentication.application.command.CreateRoleCommand;
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  * Requires admin privileges for most operations
  */
 @RestController
-@RequestMapping("/roles")
+@RequestMapping("/admin/roles")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Role Management", description = "Endpoints for managing roles")
@@ -64,61 +64,61 @@ public class RoleController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-
-    /**
-     * Assigns a role to a user
-     *
-     * @param userId user ID
-     * @param request assign role request
-     * @return no content response
-     */
-    @PostMapping("/users/{userId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
-    @Operation(summary = "Assign role to user", description = "Assigns a role to a specific user")
-    public ResponseEntity<Void> assignRoleToUser(
-            @PathVariable UUID userId,
-            @Valid @RequestBody AssignRoleRequest request) {
-
-        log.debug("Assigning role '{}' to user: {}", request.getRoleName(), userId);
-
-        AssignRoleCommand command = new AssignRoleCommand(
-                userId,
-                request.getRoleName(),
-                null // assignedBy
-        );
-
-        roleService.assignRoleToUser(command);
-
-        return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * Removes a role from a user
-     *
-     * @param userId user ID
-     * @param request remove role request
-     * @return no content response
-     */
-    @DeleteMapping("/users/{userId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
-    @Operation(summary = "Remove role from user", description = "Removes a role from a specific user")
-    public ResponseEntity<Void> removeRoleFromUser(
-            @PathVariable UUID userId,
-            @Valid @RequestBody AssignRoleRequest request) {
-
-        log.debug("Removing role '{}' from user: {}", request.getRoleName(), userId);
-
-        RemoveRoleCommand command = new RemoveRoleCommand(
-                userId,
-                request.getRoleName(),
-                null // removedBy
-        );
-
-        roleService.removeRoleFromUser(command);
-
-        return ResponseEntity.noContent().build();
-    }
-
+//
+//    /**
+//     * Assigns a role to a user
+//     *
+//     * @param userId user ID
+//     * @param request assign role request
+//     * @return no content response
+//     */
+//    @PostMapping("/users/{userId}")
+//    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+//    @Operation(summary = "Assign role to user", description = "Assigns a role to a specific user")
+//    public ResponseEntity<Void> assignRoleToUser(
+//            @PathVariable UUID userId,
+//            @Valid @RequestBody AssignRoleRequest request) {
+//
+//        log.debug("Assigning role '{}' to user: {}", request.getRoleName(), userId);
+//
+//        AssignRoleCommand command = new AssignRoleCommand(
+//                userId,
+//                request.getRoleName(),
+//                null // assignedBy
+//        );
+//
+//        roleService.assignRoleToUser(command);
+//
+//        return ResponseEntity.noContent().build();
+//    }
+//
+//    /**
+//     * Removes a role from a user
+//     *
+//     * @param userId user ID
+//     * @param request remove role request
+//     * @return no content response
+//     */
+//    @DeleteMapping("/users/{userId}")
+//    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+//    @Operation(summary = "Remove role from user", description = "Removes a role from a specific user")
+//    public ResponseEntity<Void> removeRoleFromUser(
+//            @PathVariable UUID userId,
+//            @Valid @RequestBody AssignRoleRequest request) {
+//
+//        log.debug("Removing role '{}' from user: {}", request.getRoleName(), userId);
+//
+//        RemoveRoleCommand command = new RemoveRoleCommand(
+//                userId,
+//                request.getRoleName(),
+//                null // removedBy
+//        );
+//
+//        roleService.removeRoleFromUser(command);
+//
+//        return ResponseEntity.noContent().build();
+//    }
+//
     /**
      * Retrieves all roles
      *
@@ -142,20 +142,20 @@ public class RoleController {
 
         return ResponseEntity.ok(responses);
     }
-
-    /**
-     * Retrieves roles for a specific user
-     *
-     * @param userId user ID
-     * @return set of user roles
-     */
-    @GetMapping("/users/{userId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
-    @Operation(summary = "Get user roles", description = "Retrieves all roles assigned to a user")
-    public ResponseEntity<Set<String>> getUserRoles(@PathVariable UUID userId) {
-        log.debug("Retrieving roles for user: {}", userId);
-
-        Set<String> roles = roleService.getUserRoles(userId);
-        return ResponseEntity.ok(roles);
-    }
+//
+//    /**
+//     * Retrieves roles for a specific user
+//     *
+//     * @param userId user ID
+//     * @return set of user roles
+//     */
+//    @GetMapping("/users/{userId}")
+//    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+//    @Operation(summary = "Get user roles", description = "Retrieves all roles assigned to a user")
+//    public ResponseEntity<Set<String>> getUserRoles(@PathVariable UUID userId) {
+//        log.debug("Retrieving roles for user: {}", userId);
+//
+//        Set<String> roles = roleService.getUserRoles(userId);
+//        return ResponseEntity.ok(roles);
+//    }
 }

@@ -2,6 +2,8 @@ package com.guardianservices.userAuthentication.infrastructure.persistence.jpa.r
 
 import com.guardianservices.userAuthentication.infrastructure.persistence.jpa.entity.UserJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -47,6 +49,13 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
     Optional<UserJpaEntity> findByKeycloakId(String keycloakId);
 
     /**
+     * Finds a user by username and product.
+     * Uses a join on the product collection. Handles the case where the product might be null (for SUPER_ADMINs).
+     */
+    @Query("SELECT DISTINCT u FROM UserJpaEntity u WHERE LOWER(u.username) = :username AND LOWER(u.product) = :product")
+    Optional<UserJpaEntity> findByUsernameAndProduct(@Param("username") String username, @Param("product") String product);
+
+    /**
      * Checks if user exists by username
      */
     boolean existsByUsername(String username);
@@ -55,4 +64,11 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
      * Checks if user exists by email
      */
     boolean existsByEmail(String email);
+
+    /**
+     * Checks if user exists by username and product.
+     */
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM UserJpaEntity u WHERE LOWER(u.username) = :username AND LOWER(u.product) = :product")
+    boolean existsByUsernameAndProduct(@Param("username") String username, @Param("product") String product);
+
 }

@@ -22,8 +22,6 @@ public class Role {
     private UUID id;
     private String name;
     private String description;
-    @Builder.Default
-    private Set<Permission> permissions = new HashSet<>();
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

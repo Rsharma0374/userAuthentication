@@ -19,7 +19,7 @@ public interface UserMapper {
      * @return user response DTO
      */
     @Mapping(source = "id", target = "id")
-    @Mapping(source = "roles", target = "roles")
-    @Mapping(source = "products", target = "products")
+    @Mapping(source = "role", target = "role")
+    @Mapping(source = "product", target = "product")
     UserResponse toResponse(User user);
 }

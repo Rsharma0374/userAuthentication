@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 
 /**
- * Redis implementation of token blocklist port
- * Stores revoked tokens with their expiration time
+ * Implementation of TokenBlocklistPort using Redis.
+ * Stores blocked tokens with an expiration time to ensure the cache does not grow indefinitely.
  */
 @Component
 @RequiredArgsConstructor
@@ -20,47 +20,35 @@ public class RedisTokenBlocklist implements TokenBlocklistPort {
     private final RedisTemplate<String, Object> redisTemplate;
     private static final String BLOCKLIST_PREFIX = "token:blocklist:";
 
-    /**
-     * Adds token to blocklist with expiration
-     *
-     * @param token token to block
-     * @param expiration duration the token should remain blocked
-     */
     @Override
-    public void add(String token, Duration expiration) {
-        String blocklistKey = BLOCKLIST_PREFIX + token;
-        redisTemplate.opsForValue().set(blocklistKey, "blocked", expiration);
-        log.debug("Token added to blocklist, expires in: {} seconds", expiration.getSeconds());
-    }
-
-    /**
-     * Checks if token is in blocklist
-     *
-     * @param token token to check
-     * @return true if token is blocked
-     */
-    @Override
-    public boolean isBlocked(String token) {
-        String blocklistKey = BLOCKLIST_PREFIX + token;
-        Boolean exists = redisTemplate.hasKey(blocklistKey);
-        boolean blocked = Boolean.TRUE.equals(exists);
-
-        if (blocked) {
-            log.debug("Token found in blocklist");
+    public void blockToken(String jti, Duration expiry) {
+        if (jti == null || jti.isEmpty()) {
+            log.warn("Attempted to block a null or empty JTI.");
+            return;
         }
-
-        return blocked;
+        String key = BLOCKLIST_PREFIX + jti;
+        try {
+            redisTemplate.opsForValue().set(key, "revoked", expiry);
+            log.debug("Token JTI {} added to blocklist. Expires in {}", jti, expiry);
+        } catch (Exception e) {
+            log.error("Failed to add token JTI {} to blocklist. Error: {}", jti, e.getMessage(), e);
+        }
     }
 
-    /**
-     * Removes token from blocklist
-     *
-     * @param token token to remove
-     */
     @Override
-    public void remove(String token) {
-        String blocklistKey = BLOCKLIST_PREFIX + token;
-        redisTemplate.delete(blocklistKey);
-        log.debug("Token removed from blocklist");
+    public boolean isTokenBlocked(String jti) {
+        if (jti == null || jti.isEmpty()) {
+            return false;
+        }
+        String key = BLOCKLIST_PREFIX + jti;
+        try {
+            Boolean hasKey = redisTemplate.hasKey(key);
+            return Boolean.TRUE.equals(hasKey);
+        } catch (Exception e) {
+            log.error("Failed to check token blocklist for JTI {}. Assuming not blocked. Error: {}", jti, e.getMessage(), e);
+            // In a highly secure system, returning false here might be a risk.
+            // However, failing open (allowing access) during a cache outage is often preferred over a hard outage.
+            return false;
+        }
     }
 }

@@ -3,31 +3,24 @@ package com.guardianservices.userAuthentication.domain.port.out;
 import java.time.Duration;
 
 /**
- * Port for token blocklist operations
- * Used for storing revoked tokens
+ * Port for managing a blocklist of revoked tokens.
+ * This provides an abstraction for blacklisting tokens until they expire.
  */
 public interface TokenBlocklistPort {
 
     /**
-     * Adds token to blocklist
+     * Adds a token's unique identifier (e.g., JTI) to the blocklist for a specified duration.
      *
-     * @param token token to block
-     * @param expiration duration token should remain blocked
+     * @param jti The unique identifier of the token to block.
+     * @param expiry The duration for which the token should be blocked.
      */
-    void add(String token, Duration expiration);
+    void blockToken(String jti, Duration expiry);
 
     /**
-     * Checks if token is blocked
+     * Checks if a token's unique identifier is present in the blocklist.
      *
-     * @param token token to check
-     * @return true if token is blocked
+     * @param jti The unique identifier of the token to check.
+     * @return {@code true} if the token is blocked, {@code false} otherwise.
      */
-    boolean isBlocked(String token);
-
-    /**
-     * Removes token from blocklist
-     *
-     * @param token token to remove
-     */
-    void remove(String token);
+    boolean isTokenBlocked(String jti);
 }

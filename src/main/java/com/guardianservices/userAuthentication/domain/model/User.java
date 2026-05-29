@@ -36,11 +36,9 @@ public class User {
     @Builder.Default
     private Boolean emailVerified = false;
 
-    @Builder.Default
-    private Set<String> roles = new HashSet<>();
+    private String role;
 
-    @Builder.Default
-    private Set<Product> products = new HashSet<>();
+    private String product;
 
     @Builder.Default
     private Boolean mfaEnabled = false;

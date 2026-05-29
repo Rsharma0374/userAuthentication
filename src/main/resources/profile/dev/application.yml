@@ -3,8 +3,8 @@ spring:
     name: auth-service
 
   kafka:
-#    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}//use this for local kafka
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:152.67.3.253:9094}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+#    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:152.67.3.253:9094}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer

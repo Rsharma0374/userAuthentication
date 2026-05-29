@@ -1,5 +1,6 @@
 package com.guardianservices.userAuthentication.web.dto.request;
 
+import com.guardianservices.userAuthentication.domain.model.Product;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -19,4 +20,6 @@ public class ChangePasswordRequest {
 
     @NotBlank(message = "Confirm password is required")
     private String confirmPassword;
+
+    private String product;
 }

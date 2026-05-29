@@ -19,7 +19,7 @@ public class UserResponse {
     private boolean enabled;
     private boolean emailVerified;
     private boolean mfaEnabled;
-    private String[] roles;
-    private List<Product> products;;
+    private String role;
+    private String product;
     private LocalDateTime createdAt;
 }

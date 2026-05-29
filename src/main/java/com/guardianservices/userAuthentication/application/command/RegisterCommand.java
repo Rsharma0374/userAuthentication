@@ -13,5 +13,5 @@ public record RegisterCommand(
     String password,
     String firstName,
     String lastName,
-    Set<Product> products
+    String product
 ) {}

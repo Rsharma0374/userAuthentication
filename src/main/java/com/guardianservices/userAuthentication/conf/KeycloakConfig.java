@@ -16,36 +16,57 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class KeycloakConfig {
 
-    public static final String KEYKLOAK_SECRET_TYPE = "Keykloak_Secret";
-    public static final String KEYKLOAK_URL = "keykloakUrl";
-    public static final String KEYKLOAK_REALM = "keykloakRealm";
-    public static final String KEYKLOAK_CLIENT_ID = "keykloakClientId";
-    public static final String KEYKLOAK_CLIENT_SECRET = "keykloakClientSecret";
+    // --- Secret type constants ---
+    public static final String KEYCLOAK_SECRET_TYPE = "Keycloak_Secret";
+    // --- Shared ---
+    public static final String KEYCLOAK_URL   = "keycloakUrl";
+    public static final String KEYCLOAK_REALM = "keycloakRealm";
+    // --- Admin Client ---
+    public static final String KEYCLOAK_ADMIN_CLIENT_ID     = "keycloakAdminClientId";
+    public static final String KEYCLOAK_ADMIN_CLIENT_SECRET = "keycloakAdminClientSecret";
+    // --- User Client ---
+    public static final String KEYCLOAK_USER_CLIENT_ID      = "keycloakUserClientId";
+    public static final String KEYCLOAK_USER_CLIENT_SECRET  = "keycloakUserClientSecret";
 
     @Autowired
     private InfisicalService infisicalService;
 
     /**
-     * Creates and configures Keycloak admin client bean
-     *
-     * Uses client credentials flow instead of password grant
-     *
-     * @return configured Keycloak admin client instance
+     * Admin Keycloak client — used for realm management,
+     * creating users, assigning roles, etc.
+     * Grant type: CLIENT_CREDENTIALS (no human login)
      */
-    @Bean
+    @Bean(name = "keycloakAdminClient")
     public Keycloak keycloakAdminClient() {
-
-        String keykloakUrl = infisicalService.getSecret(KEYKLOAK_URL, KEYKLOAK_SECRET_TYPE);
-        String keykloakRealm = infisicalService.getSecret(KEYKLOAK_REALM, KEYKLOAK_SECRET_TYPE);
-        String keykloakClientId = infisicalService.getSecret(KEYKLOAK_CLIENT_ID, KEYKLOAK_SECRET_TYPE);
-        String keykloakClientSecret = infisicalService.getSecret(KEYKLOAK_CLIENT_SECRET, KEYKLOAK_SECRET_TYPE);
-
+        String url          = infisicalService.getSecret(KEYCLOAK_URL, KEYCLOAK_SECRET_TYPE);
+        String realm        = infisicalService.getSecret(KEYCLOAK_REALM, KEYCLOAK_SECRET_TYPE);
+        String clientId     = infisicalService.getSecret(KEYCLOAK_ADMIN_CLIENT_ID, KEYCLOAK_SECRET_TYPE);
+        String clientSecret = infisicalService.getSecret(KEYCLOAK_ADMIN_CLIENT_SECRET, KEYCLOAK_SECRET_TYPE);
         return KeycloakBuilder.builder()
-                .serverUrl(keykloakUrl)
-                .realm(keykloakRealm)
-                .clientId(keykloakClientId)
-                .clientSecret(keykloakClientSecret)
+                .serverUrl(url)
+                .realm(realm)
+                .clientId(clientId)
+                .clientSecret(clientSecret)
                 .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
+                .build();
+    }
+    /**
+     * User Keycloak client — used for user login, token exchange,
+     * password resets, etc.
+     * Grant type: PASSWORD (acts on behalf of a user)
+     */
+    @Bean(name = "keycloakUserClient")
+    public Keycloak keycloakUserClient() {
+        String url          = infisicalService.getSecret(KEYCLOAK_URL, KEYCLOAK_SECRET_TYPE);
+        String realm        = infisicalService.getSecret(KEYCLOAK_REALM, KEYCLOAK_SECRET_TYPE);
+        String clientId     = infisicalService.getSecret(KEYCLOAK_USER_CLIENT_ID, KEYCLOAK_SECRET_TYPE);
+        String clientSecret = infisicalService.getSecret(KEYCLOAK_USER_CLIENT_SECRET, KEYCLOAK_SECRET_TYPE);
+        return KeycloakBuilder.builder()
+                .serverUrl(url)
+                .realm(realm)
+                .clientId(clientId)
+                .clientSecret(clientSecret)
+                .grantType(OAuth2Constants.CLIENT_CREDENTIALS)  // or AUTHORIZATION_CODE for web
                 .build();
     }
 }

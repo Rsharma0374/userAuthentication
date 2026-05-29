@@ -1,5 +1,6 @@
 package com.guardianservices.userAuthentication.domain.port.out;
 
+import com.guardianservices.userAuthentication.domain.model.Product;
 import com.guardianservices.userAuthentication.domain.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -56,6 +57,15 @@ public interface UserRepository {
     Optional<User> findByUsernameOrEmail(String username, String email);
 
     /**
+     * Finds a user by their username and associated product.
+     *
+     * @param username The username to search for.
+     * @param product The product the user must be associated with.
+     * @return An optional containing the user if found.
+     */
+    Optional<User> findByUsernameAndProduct(String username, String product);
+
+    /**
      * Finds user by Keycloak ID
      *
      * @param keycloakId Keycloak user ID
@@ -100,4 +110,14 @@ public interface UserRepository {
      * @return true if user exists
      */
     boolean existsByEmail(String email);
+
+    /**
+     * Checks if a user exists with the given username and product association.
+     *
+     * @param username The username.
+     * @param product The product.
+     * @return true if such a user exists, false otherwise.
+     */
+    boolean existsByUsernameAndProduct(String username, String product);
+
 }

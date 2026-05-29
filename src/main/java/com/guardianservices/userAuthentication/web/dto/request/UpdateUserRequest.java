@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -17,5 +18,5 @@ public class UpdateUserRequest {
     private String role;
 
     // This can be null if the user is being updated to a role without products (e.g., SUPER_ADMIN)
-    private Product productName;
+    private List<Product> products;
 }

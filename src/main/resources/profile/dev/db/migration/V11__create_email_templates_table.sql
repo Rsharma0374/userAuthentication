@@ -1,0 +1,493 @@
+-- Drop existing constraints if they exist to be safe
+ALTER TABLE email_templates DROP CONSTRAINT IF EXISTS email_templates_template_name_product_key;
+
+CREATE TABLE email_templates
+(
+    id            UUID PRIMARY KEY      DEFAULT gen_random_uuid(),
+    template_name VARCHAR(100) NOT NULL,
+    product       VARCHAR(50),
+    subject       VARCHAR(255) NOT NULL,
+    body          TEXT         NOT NULL,
+    from_address  VARCHAR(255) NOT NULL,
+    is_active     BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- A user can have a product-specific template
+CREATE UNIQUE INDEX idx_unique_template_per_product ON email_templates (template_name, product) WHERE product IS NOT NULL;
+
+-- Or a single generic template can exist for a template_name
+CREATE UNIQUE INDEX idx_unique_generic_template ON email_templates (template_name) WHERE product IS NULL;
+
+
+-- Insert a product-specific template for the password reset OTP
+INSERT INTO email_templates (template_name, product, subject, body, from_address, is_active)
+VALUES ('PASSWORD_RESET_OTP',
+        'AI_LOG_ANALYZER',
+        'Your Password Reset Request – AI Log Analyzer',
+        '<!DOCTYPE html>
+    <html>
+    <body style="margin:0;padding:0;background-color:#f4f6f9;font-family:Arial,sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f9;padding:40px 0;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+              <!-- Header -->
+              <tr>
+                <td style="background-color:#0f172a;padding:28px 40px;text-align:center;">
+                  <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:600;letter-spacing:0.5px;">AI Log Analyzer</h1>
+                  <p style="margin:4px 0 0;color:#94a3b8;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Security Notification</p>
+                </td>
+              </tr>
+
+              <!-- Body -->
+              <tr>
+                <td style="padding:40px 40px 20px;">
+                  <p style="margin:0 0 12px;color:#374151;font-size:15px;">Hello <strong>{{username}}</strong>,</p>
+                  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;line-height:1.7;">
+                    We received a request to reset the password associated with your AI Log Analyzer account.
+                    Use the One-Time Password (OTP) below to proceed. This code is valid for <strong>15 minutes</strong>.
+                  </p>
+
+                  <!-- OTP Box -->
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center" style="padding:24px 0;">
+                        <div style="display:inline-block;background-color:#f0f4ff;border:1px dashed #4f46e5;border-radius:8px;padding:18px 48px;">
+                          <p style="margin:0 0 4px;color:#6b7280;font-size:11px;letter-spacing:2px;text-transform:uppercase;">Your OTP Code</p>
+                          <p style="margin:0;color:#0f172a;font-size:36px;font-weight:700;letter-spacing:8px;">{{otp}}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Warning -->
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 28px;">
+                    <tr>
+                      <td style="background-color:#fff7ed;border-left:4px solid #f97316;border-radius:4px;padding:14px 16px;">
+                        <p style="margin:0;color:#92400e;font-size:13px;line-height:1.6;">
+                          ⚠️ &nbsp;Do not share this OTP with anyone. Our team will <strong>never</strong> ask for your OTP.
+                          If you did not request this, please secure your account immediately.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin:0 0 8px;color:#6b7280;font-size:13px;line-height:1.7;">
+                    This OTP is single-use only and will expire at <strong>{{expiresAt}}</strong>.
+                    If you did not initiate this request, you can safely ignore this email.
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="background-color:#f8fafc;padding:24px 40px;border-top:1px solid #e5e7eb;text-align:center;">
+                  <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">This is an automated message — please do not reply.</p>
+                  <p style="margin:0;color:#9ca3af;font-size:12px;">
+                    Need help? Contact us at
+                    <a href="mailto:support@guardianservices.in" style="color:#4f46e5;text-decoration:none;">support@guardianservices.in</a>
+                  </p>
+                  <p style="margin:12px 0 0;color:#d1d5db;font-size:11px;">© 2026 Guardian Services. All rights reserved.</p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>',
+        'no-reply@guardianservices.in',
+        TRUE);
+
+
+INSERT INTO email_templates (template_name, product, subject, body, from_address, is_active)
+VALUES ('PASSWORD_RESET_OTP',
+        NULL,
+        'Administrator Password Reset Request – Guardian Services',
+        '<!DOCTYPE html>
+    <html>
+    <body style="margin:0;padding:0;background-color:#f4f6f9;font-family:Arial,sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f9;padding:40px 0;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+              <!-- Header -->
+              <tr>
+                <td style="background-color:#0a0f1e;padding:28px 40px;text-align:center;">
+                  <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:600;letter-spacing:0.5px;">Guardian Services</h1>
+                  <p style="margin:6px 0 0;color:#64748b;font-size:11px;letter-spacing:2px;text-transform:uppercase;">Enterprise Administration Portal</p>
+                  <div style="margin:14px auto 0;width:48px;height:2px;background:linear-gradient(to right,#4f46e5,#7c3aed);border-radius:2px;"></div>
+                </td>
+              </tr>
+              <!-- Admin Badge -->
+              <tr>
+                <td style="background-color:#0f172a;padding:10px 40px 16px;text-align:center;">
+                  <span style="display:inline-block;background-color:#1e293b;border:1px solid #334155;border-radius:20px;padding:4px 16px;">
+                    <p style="margin:0;color:#94a3b8;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">🔐 &nbsp;Privileged Account — Confidential</p>
+                  </span>
+                </td>
+              </tr>
+              <!-- Body -->
+              <tr>
+                <td style="padding:40px 40px 20px;">
+                  <p style="margin:0 0 12px;color:#374151;font-size:15px;">Hello <strong>{{username}}</strong>,</p>
+                  <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.7;">
+                    A password reset request has been initiated for your
+                    <strong style="color:#0f172a;">{{role}}</strong> account on the Guardian Services Enterprise Portal.
+                  </p>
+                  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;line-height:1.7;">
+                    Use the One-Time Password (OTP) below to verify your identity and proceed with the reset.
+                    This code is strictly time-bound and valid for <strong>15 minutes</strong>.
+                  </p>
+                  <!-- OTP Box -->
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center" style="padding:24px 0;">
+                        <div style="display:inline-block;background-color:#f5f3ff;border:1px dashed #7c3aed;border-radius:8px;padding:18px 48px;">
+                          <p style="margin:0 0 4px;color:#7c3aed;font-size:11px;letter-spacing:2px;text-transform:uppercase;">One-Time Password</p>
+                          <p style="margin:0;color:#0f172a;font-size:36px;font-weight:700;letter-spacing:8px;">{{otp}}</p>
+                          <p style="margin:6px 0 0;color:#9ca3af;font-size:11px;">Expires at &nbsp;<strong>{{expiresAt}}</strong></p>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+                  <!-- High Privilege Warning -->
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 16px;">
+                    <tr>
+                      <td style="background-color:#fef2f2;border-left:4px solid #dc2626;border-radius:4px;padding:14px 16px;">
+                        <p style="margin:0 0 6px;color:#991b1b;font-size:13px;font-weight:600;">🚨 &nbsp;High-Privilege Account Alert</p>
+                        <p style="margin:0;color:#b91c1c;font-size:13px;line-height:1.7;">
+                          This account holds elevated administrative access across the Guardian Services platform.
+                          Never share this OTP with anyone — including Guardian Services staff.
+                          If you did not request this reset, <strong>immediately contact your security team</strong>
+                          and revoke access if necessary.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                  <!-- Security Tip -->
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 28px;">
+                    <tr>
+                      <td style="background-color:#f0fdf4;border-left:4px solid #16a34a;border-radius:4px;padding:14px 16px;">
+                        <p style="margin:0;color:#166534;font-size:13px;line-height:1.7;">
+                          ✅ &nbsp;<strong>Security Reminder:</strong> Always reset your password from a trusted, secured device.
+                          Ensure you are on a private network and no unauthorized personnel can view your screen.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                  <p style="margin:0 0 8px;color:#6b7280;font-size:13px;line-height:1.7;">
+                    This OTP is single-use only. Once used or expired, it becomes permanently invalid.
+                    A new reset request will need to be initiated if needed.
+                  </p>
+                </td>
+              </tr>
+              <!-- Divider -->
+              <tr>
+                <td style="padding:0 40px;">
+                  <hr style="border:none;border-top:1px solid #e5e7eb;margin:0;" />
+                </td>
+              </tr>
+              <!-- Footer -->
+              <tr>
+                <td style="background-color:#f8fafc;padding:24px 40px;text-align:center;">
+                  <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">This message was intended for an authorized Guardian Services administrator.</p>
+                  <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">This is an automated message — please do not reply directly to this email.</p>
+                  <p style="margin:0;color:#9ca3af;font-size:12px;">
+                    Security concerns? Reach us at
+                    <a href="mailto:security@guardianservices.in" style="color:#7c3aed;text-decoration:none;">security@guardianservices.in</a>
+                  </p>
+                  <p style="margin:12px 0 0;color:#d1d5db;font-size:11px;">© 2026 Guardian Services. All rights reserved. &nbsp;|&nbsp; Enterprise Portal</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>',
+        'noreply@guardianservices.in',
+        TRUE);
+
+-- Insert a generic template for successful password resets
+
+-- =====================================================
+-- PASSWORD RESET SUCCESS — Product (AI Log Analyzer)
+-- =====================================================
+INSERT INTO email_templates (template_name, product, subject, body, from_address, is_active)
+VALUES ('PASSWORD_RESET_SUCCESS',
+        'AI_LOG_ANALYZER',
+        'Your AI Log Analyzer Password Has Been Successfully Reset',
+        '<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background-color:#f4f6f9;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f9;padding:40px 0;">
+ <tr>
+   <td align="center">
+     <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+       <!-- Header -->
+       <tr>
+         <td style="background-color:#0f172a;padding:28px 40px;text-align:center;">
+           <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:600;letter-spacing:0.5px;">AI Log Analyzer</h1>
+           <p style="margin:4px 0 0;color:#94a3b8;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Security Notification</p>
+         </td>
+       </tr>
+       <!-- Success Banner -->
+       <tr>
+         <td style="background-color:#f0fdf4;padding:20px 40px;text-align:center;border-bottom:1px solid #bbf7d0;">
+           <p style="margin:0;font-size:32px;">✅</p>
+           <p style="margin:6px 0 0;color:#15803d;font-size:16px;font-weight:600;">Password Reset Successful</p>
+           <p style="margin:4px 0 0;color:#6b7280;font-size:12px;">{{resetAt}}</p>
+         </td>
+       </tr>
+       <!-- Body -->
+       <tr>
+         <td style="padding:36px 40px 20px;">
+           <p style="margin:0 0 12px;color:#374151;font-size:15px;">Hello <strong>{{username}}</strong>,</p>
+           <p style="margin:0 0 24px;color:#6b7280;font-size:14px;line-height:1.7;">
+             This is a confirmation that the password for your <strong style="color:#0f172a;">AI Log Analyzer</strong> account
+             was successfully reset. Below are your new login credentials.
+           </p>
+           <!-- New Password Card -->
+           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+             <tr>
+               <td align="center" style="padding:4px 0 20px;">
+                 <div style="display:inline-block;background-color:#f0f4ff;border:1px dashed #4f46e5;border-radius:8px;padding:18px 48px;text-align:center;">
+                   <p style="margin:0 0 4px;color:#6b7280;font-size:11px;letter-spacing:2px;text-transform:uppercase;">Your New Password</p>
+                   <p style="margin:0;color:#0f172a;font-size:24px;font-weight:700;letter-spacing:4px;">{{newPassword}}</p>
+                   <p style="margin:6px 0 0;color:#9ca3af;font-size:11px;">Please change this after your first login</p>
+                 </div>
+               </td>
+             </tr>
+           </table>
+           <!-- Reset Details Card -->
+           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+             <tr>
+               <td style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px 24px;">
+                 <p style="margin:0 0 12px;color:#374151;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Reset Summary</p>
+                 <table width="100%" cellpadding="0" cellspacing="0">
+                   <tr>
+                     <td style="color:#6b7280;font-size:13px;padding:4px 0;">Account</td>
+                     <td style="color:#0f172a;font-size:13px;font-weight:600;text-align:right;">{{email}}</td>
+                   </tr>
+                   <tr>
+                     <td style="color:#6b7280;font-size:13px;padding:4px 0;">Reset Time</td>
+                     <td style="color:#0f172a;font-size:13px;font-weight:600;text-align:right;">{{resetAt}}</td>
+                   </tr>
+                   <tr>
+                     <td style="color:#6b7280;font-size:13px;padding:4px 0;">IP Address</td>
+                     <td style="color:#0f172a;font-size:13px;font-weight:600;text-align:right;">{{ipAddress}}</td>
+                   </tr>
+                 </table>
+               </td>
+             </tr>
+           </table>
+           <!-- Security Tip -->
+           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+             <tr>
+               <td style="background-color:#f0fdf4;border-left:4px solid #16a34a;border-radius:4px;padding:14px 16px;">
+                 <p style="margin:0;color:#166534;font-size:13px;line-height:1.7;">
+                   ✅ &nbsp;<strong>Recommended:</strong> Log in immediately and change this temporary password
+                   to a strong password of your choice from your account settings.
+                 </p>
+               </td>
+             </tr>
+           </table>
+           <!-- Warning Strip -->
+           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+             <tr>
+               <td style="background-color:#fef2f2;border-left:4px solid #dc2626;border-radius:4px;padding:14px 16px;">
+                 <p style="margin:0 0 4px;color:#991b1b;font-size:13px;font-weight:600;">🚨 &nbsp;Was this not you?</p>
+                 <p style="margin:0;color:#b91c1c;font-size:13px;line-height:1.7;">
+                   If you did not perform this action, your account may be compromised.
+                   Please contact our support team immediately at
+                   <a href="mailto:support@guardianservices.in" style="color:#dc2626;font-weight:600;">support@guardianservices.in</a>
+                   and change your password right away.
+                 </p>
+               </td>
+             </tr>
+           </table>
+           <p style="margin:0 0 8px;color:#6b7280;font-size:13px;line-height:1.7;">
+             For your security, all active sessions have been invalidated.
+             Please log in again using your new credentials.
+           </p>
+         </td>
+       </tr>
+       <!-- Divider -->
+       <tr>
+         <td style="padding:0 40px;">
+           <hr style="border:none;border-top:1px solid #e5e7eb;margin:0;" />
+         </td>
+       </tr>
+       <!-- Footer -->
+       <tr>
+         <td style="background-color:#f8fafc;padding:24px 40px;text-align:center;">
+           <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">This is an automated message — please do not reply.</p>
+           <p style="margin:0;color:#9ca3af;font-size:12px;">
+             Need help? Contact us at
+             <a href="mailto:support@guardianservices.in" style="color:#4f46e5;text-decoration:none;">support@guardianservices.in</a>
+           </p>
+           <p style="margin:12px 0 0;color:#d1d5db;font-size:11px;">© 2026 Guardian Services. All rights reserved.</p>
+         </td>
+       </tr>
+     </table>
+   </td>
+ </tr>
+</table>
+</body>
+</html>',
+        'security@guardianservices.in',
+        TRUE);
+
+
+-- =====================================================
+-- PASSWORD RESET SUCCESS — NULL Product (Admin / Super Admin)
+-- =====================================================
+INSERT INTO email_templates (template_name, product, subject, body, from_address, is_active)
+VALUES ('PASSWORD_RESET_SUCCESS',
+        NULL,
+        'Administrator Password Successfully Reset – Guardian Services',
+        '<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background-color:#f4f6f9;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f9;padding:40px 0;">
+ <tr>
+   <td align="center">
+     <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+       <!-- Header -->
+       <tr>
+         <td style="background-color:#0a0f1e;padding:28px 40px;text-align:center;">
+           <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:600;letter-spacing:0.5px;">Guardian Services</h1>
+           <p style="margin:6px 0 0;color:#64748b;font-size:11px;letter-spacing:2px;text-transform:uppercase;">Enterprise Administration Portal</p>
+           <div style="margin:14px auto 0;width:48px;height:2px;background:linear-gradient(to right,#4f46e5,#7c3aed);border-radius:2px;"></div>
+         </td>
+       </tr>
+       <!-- Admin Badge -->
+       <tr>
+         <td style="background-color:#0f172a;padding:10px 40px 16px;text-align:center;">
+           <span style="display:inline-block;background-color:#1e293b;border:1px solid #334155;border-radius:20px;padding:4px 16px;">
+             <p style="margin:0;color:#94a3b8;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">🔐 &nbsp;Privileged Account — Confidential</p>
+           </span>
+         </td>
+       </tr>
+       <!-- Success Banner -->
+       <tr>
+         <td style="background-color:#f0fdf4;padding:20px 40px;text-align:center;border-bottom:1px solid #bbf7d0;">
+           <p style="margin:0;font-size:32px;">✅</p>
+           <p style="margin:6px 0 0;color:#15803d;font-size:16px;font-weight:600;">Administrator Password Reset Confirmed</p>
+           <p style="margin:4px 0 0;color:#6b7280;font-size:12px;">{{resetAt}}</p>
+         </td>
+       </tr>
+       <!-- Body -->
+       <tr>
+         <td style="padding:36px 40px 20px;">
+           <p style="margin:0 0 12px;color:#374151;font-size:15px;">Hello <strong>{{username}}</strong>,</p>
+           <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.7;">
+             This is a secure confirmation that the password for your
+             <strong style="color:#0f172a;">{{role}}</strong> account on the
+             Guardian Services Enterprise Portal has been successfully reset.
+             Below are your new temporary login credentials.
+           </p>
+           <p style="margin:0 0 24px;color:#6b7280;font-size:14px;line-height:1.7;">
+             All previously active sessions have been terminated as a security precaution.
+           </p>
+           <!-- New Password Card -->
+           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+             <tr>
+               <td align="center" style="padding:4px 0 20px;">
+                 <div style="display:inline-block;background-color:#f5f3ff;border:1px dashed #7c3aed;border-radius:8px;padding:18px 48px;text-align:center;">
+                   <p style="margin:0 0 4px;color:#7c3aed;font-size:11px;letter-spacing:2px;text-transform:uppercase;">Your New Password</p>
+                   <p style="margin:0;color:#0f172a;font-size:24px;font-weight:700;letter-spacing:4px;">{{newPassword}}</p>
+                   <p style="margin:6px 0 0;color:#9ca3af;font-size:11px;">Change this immediately after your first login</p>
+                 </div>
+               </td>
+             </tr>
+           </table>
+           <!-- Reset Details Card -->
+           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+             <tr>
+               <td style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px 24px;">
+                 <p style="margin:0 0 12px;color:#374151;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Reset Summary</p>
+                 <table width="100%" cellpadding="0" cellspacing="0">
+                   <tr>
+                     <td style="color:#6b7280;font-size:13px;padding:4px 0;">Account</td>
+                     <td style="color:#0f172a;font-size:13px;font-weight:600;text-align:right;">{{email}}</td>
+                   </tr>
+                   <tr>
+                     <td style="color:#6b7280;font-size:13px;padding:4px 0;">Role</td>
+                     <td style="color:#0f172a;font-size:13px;font-weight:600;text-align:right;">{{role}}</td>
+                   </tr>
+                   <tr>
+                     <td style="color:#6b7280;font-size:13px;padding:4px 0;">Reset Time</td>
+                     <td style="color:#0f172a;font-size:13px;font-weight:600;text-align:right;">{{resetAt}}</td>
+                   </tr>
+                   <tr>
+                     <td style="color:#6b7280;font-size:13px;padding:4px 0;">IP Address</td>
+                     <td style="color:#0f172a;font-size:13px;font-weight:600;text-align:right;">{{ipAddress}}</td>
+                   </tr>
+                 </table>
+               </td>
+             </tr>
+           </table>
+           <!-- High Privilege Warning -->
+           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+             <tr>
+               <td style="background-color:#fef2f2;border-left:4px solid #dc2626;border-radius:4px;padding:14px 16px;">
+                 <p style="margin:0 0 6px;color:#991b1b;font-size:13px;font-weight:600;">🚨 &nbsp;High-Privilege Account — Immediate Action Required if Unrecognized</p>
+                 <p style="margin:0;color:#b91c1c;font-size:13px;line-height:1.7;">
+                   If you did not initiate this password reset, your privileged account may be under
+                   unauthorized access. Contact the Guardian Services security team immediately at
+                   <a href="mailto:security@guardianservices.in" style="color:#dc2626;font-weight:600;">security@guardianservices.in</a>
+                   and request an emergency account suspension.
+                 </p>
+               </td>
+             </tr>
+           </table>
+           <!-- Security Reminder -->
+           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+             <tr>
+               <td style="background-color:#f0fdf4;border-left:4px solid #16a34a;border-radius:4px;padding:14px 16px;">
+                 <p style="margin:0;color:#166534;font-size:13px;line-height:1.7;">
+                   ✅ &nbsp;<strong>Recommended:</strong> Log in immediately and update this temporary password
+                   to a strong password of your choice. Enable MFA if not already active and
+                   never reuse passwords across platforms.
+                 </p>
+               </td>
+             </tr>
+           </table>
+           <p style="margin:0 0 8px;color:#6b7280;font-size:13px;line-height:1.7;">
+             This event has been logged in the Guardian Services audit trail and is associated with
+             Request ID: <strong style="color:#0f172a;">{{requestId}}</strong>.
+           </p>
+         </td>
+       </tr>
+       <!-- Divider -->
+       <tr>
+         <td style="padding:0 40px;">
+           <hr style="border:none;border-top:1px solid #e5e7eb;margin:0;" />
+         </td>
+       </tr>
+       <!-- Footer -->
+       <tr>
+         <td style="background-color:#f8fafc;padding:24px 40px;text-align:center;">
+           <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">This message was intended for an authorized Guardian Services administrator.</p>
+           <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">This is an automated message — please do not reply directly to this email.</p>
+           <p style="margin:0;color:#9ca3af;font-size:12px;">
+             Security concerns? Reach us at
+             <a href="mailto:security@guardianservices.in" style="color:#7c3aed;text-decoration:none;">security@guardianservices.in</a>
+           </p>
+           <p style="margin:12px 0 0;color:#d1d5db;font-size:11px;">© 2026 Guardian Services. All rights reserved. &nbsp;|&nbsp; Enterprise Portal</p>
+         </td>
+       </tr>
+     </table>
+   </td>
+ </tr>
+</table>
+</body>
+</html>',
+        'security@guardianservices.in',
+        TRUE);
