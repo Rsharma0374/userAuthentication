@@ -19,7 +19,7 @@ public interface AdminJpaRepository extends JpaRepository<AdminJpaEntity, UUID> 
      * @param username username to search
      * @return optional containing user if found
      */
-    Optional<AdminJpaEntity> findByUsername(String username);
+    Optional<AdminJpaEntity> findByUsernameIgnoreCase(String username);
 
     /**
      * Finds user by email

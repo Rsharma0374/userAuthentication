@@ -5,6 +5,7 @@ import com.guardianservices.userAuthentication.application.service.admin.AdminSe
 import com.guardianservices.userAuthentication.domain.model.User;
 import com.guardianservices.userAuthentication.domain.port.out.AdminRepository;
 import com.guardianservices.userAuthentication.domain.port.out.UserRepository;
+import com.guardianservices.userAuthentication.util.Helper;
 import com.guardianservices.userAuthentication.web.dto.request.RefreshTokenRequest;
 import com.guardianservices.userAuthentication.web.dto.response.ApiErrorResponse;
 import com.guardianservices.userAuthentication.web.dto.response.TokenResponse;
@@ -102,7 +103,7 @@ public class AuthController {
                 return buildUnauthorizedResponse("Invalid token structure");
             }
 
-            boolean isAdmin = extractRoles(jwt).stream()
+            boolean isAdmin = Helper.extractRoles(jwt).stream()
                     .anyMatch(role ->
                             role.equals("SUPER_ADMIN")
                                     || role.equals("PRODUCT_ADMIN"));
@@ -150,17 +151,6 @@ public class AuthController {
 
             return buildUnauthorizedResponse(ex.getMessage());
         }
-    }
-
-    private List<String> extractRoles(Jwt jwt) {
-
-        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-
-        if (realmAccess == null || realmAccess.get("roles") == null) {
-            return Collections.emptyList();
-        }
-
-        return (List<String>) realmAccess.get("roles");
     }
 
     private ResponseEntity<ApiErrorResponse> buildUnauthorizedResponse(String message) {

@@ -18,4 +18,6 @@ public class TokenResponse {
     private String email;
     private Boolean emailVerified;
     private Boolean mfaEnabled;
+    private String role;
+    private String product;
 }

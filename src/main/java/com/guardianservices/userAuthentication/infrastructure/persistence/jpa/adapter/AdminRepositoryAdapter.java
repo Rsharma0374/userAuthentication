@@ -55,7 +55,7 @@ public class AdminRepositoryAdapter implements AdminRepository {
      */
     @Override
     public Optional<User> findByUsername(String username) {
-        return jpaRepository.findByUsername(username)
+        return jpaRepository.findByUsernameIgnoreCase(username)
                 .map(this::toDomainEntity);
     }
 

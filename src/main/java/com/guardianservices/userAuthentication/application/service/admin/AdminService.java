@@ -5,6 +5,8 @@ import com.guardianservices.userAuthentication.application.command.RegisterComma
 import com.guardianservices.userAuthentication.domain.model.User;
 import com.guardianservices.userAuthentication.web.dto.response.TokenResponse;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface AdminService {
 
@@ -19,4 +21,6 @@ public interface AdminService {
     public TokenResponse login(LoginCommand command);
 
     TokenResponse refreshToken(@NotBlank(message = "Refresh token is required") String refreshToken);
+
+    Page<User> getUsers(Pageable pageable, boolean isSuperAdmin, String userName);
 }

@@ -150,6 +150,11 @@ public class UserRepositoryAdapter implements UserRepository {
         return jpaRepository.existsByUsernameAndProduct(username, product);
     }
 
+    @Override
+    public Page<User> findByProduct(String product, Pageable pageable) {
+        return jpaRepository.findAllUsersByProduct(product, pageable).map(this::toDomainEntity);
+    }
+
     /**
      * Converts domain User to JPA entity
      *

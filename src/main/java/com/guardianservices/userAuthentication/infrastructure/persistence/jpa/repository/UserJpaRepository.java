@@ -1,6 +1,10 @@
 package com.guardianservices.userAuthentication.infrastructure.persistence.jpa.repository;
 
+import com.guardianservices.userAuthentication.domain.model.User;
 import com.guardianservices.userAuthentication.infrastructure.persistence.jpa.entity.UserJpaEntity;
+import com.ibm.asyncutil.util.Either;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -71,4 +75,5 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
     @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM UserJpaEntity u WHERE LOWER(u.username) = :username AND LOWER(u.product) = :product")
     boolean existsByUsernameAndProduct(@Param("username") String username, @Param("product") String product);
 
+    Page<UserJpaEntity> findAllUsersByProduct(String product, Pageable pageable);
 }

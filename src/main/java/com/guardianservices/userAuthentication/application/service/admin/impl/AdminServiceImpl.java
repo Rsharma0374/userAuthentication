@@ -3,6 +3,7 @@ package com.guardianservices.userAuthentication.application.service.admin.impl;
 import com.guardianservices.userAuthentication.application.command.LoginCommand;
 import com.guardianservices.userAuthentication.application.command.RegisterCommand;
 import com.guardianservices.userAuthentication.application.exception.ProductNotFoundException;
+import com.guardianservices.userAuthentication.application.exception.UserManagementException;
 import com.guardianservices.userAuthentication.application.exception.UserNotFoundException;
 import com.guardianservices.userAuthentication.application.service.AdminKeycloakService;
 import com.guardianservices.userAuthentication.application.service.InfisicalService;
@@ -14,12 +15,15 @@ import com.guardianservices.userAuthentication.domain.model.User;
 import com.guardianservices.userAuthentication.domain.model.results.UserExistsResult;
 import com.guardianservices.userAuthentication.domain.port.out.AdminRepository;
 import com.guardianservices.userAuthentication.domain.port.out.AuditEventPublisher;
+import com.guardianservices.userAuthentication.domain.port.out.UserRepository;
 import com.guardianservices.userAuthentication.infrastructure.persistence.jpa.repository.AdminJpaRepository;
 import com.guardianservices.userAuthentication.web.dto.response.TokenResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.keycloak.representations.AccessTokenResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -54,6 +58,9 @@ public class AdminServiceImpl implements AdminService {
 
     @Autowired
     private InfisicalService infisicalService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     private final RestTemplate restTemplate;
 
@@ -139,7 +146,7 @@ public class AdminServiceImpl implements AdminService {
     public TokenResponse login(LoginCommand command) {
         log.debug("Authenticating user: {} for product: {}", command.username(), command.product());
 
-        return switch (validateUser(command.username(), command.product())) {
+        return switch (validateUser(command.username())) {
             case UserValid(var user) -> processLogin(command, user);
             case UserNotFound() -> throw new UserNotFoundException("User not found for the specified product");
             case UserDisabled() -> throw new RuntimeException("User account is disabled");
@@ -148,8 +155,8 @@ public class AdminServiceImpl implements AdminService {
         };
     }
 
-    private UserValidationResult validateUser(String username, String product) {
-        Optional<User> userOptional = adminRepository.findByUsernameAndProduct(username, product);
+    private UserValidationResult validateUser(String username) {
+        Optional<User> userOptional = adminRepository.findByUsername(username);
 
         if (userOptional.isEmpty()) {
             return new UserNotFound();
@@ -174,6 +181,8 @@ public class AdminServiceImpl implements AdminService {
         tokenResponse.setUserId(user.getId());
         tokenResponse.setEmailVerified(user.getEmailVerified());
         tokenResponse.setMfaEnabled(user.getMfaEnabled());
+        tokenResponse.setRole(user.getRole());
+        tokenResponse.setProduct(user.getProduct());
         user.setLastLogin(LocalDateTime.now());
         adminRepository.save(user);
 
@@ -235,5 +244,36 @@ public class AdminServiceImpl implements AdminService {
                 .refreshExpiresIn(tokenResponse.getRefreshExpiresIn())
                 .tokenType(tokenResponse.getTokenType())
                 .build();
+    }
+
+        /**
+     * Retrieves a paginated subset of users from the local database.
+     * Recommended approach for retrieving user lists to ensure consistent performance and low memory overhead.
+     *
+     * @param pageable Contains pagination information such as page number, page size, and sorting criteria.
+     * @return A Page object containing the subset of User entities and pagination metadata.
+     * @throws UserManagementException If a database error occurs during the paginated query.
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public Page<User> getUsers(Pageable pageable, boolean isSuperAdmin, String username) {
+        log.debug("Retrieving users with pagination parameters: {}", pageable);
+        try {
+            if (isSuperAdmin) {
+                return adminRepository.findAll(pageable);
+            } else {
+                User admin = adminRepository.findByUsername(username)
+                        .orElseThrow(() ->
+                                new UserManagementException("User not found: " + username));
+
+                String product = admin.getProduct();
+
+                return userRepository.findByProduct(product, pageable);
+
+            }
+        } catch (Exception e) {
+            log.error("Failed to retrieve paginated users with parameters: {}", pageable, e);
+            throw new UserManagementException("An error occurred while fetching paginated users", e);
+        }
     }
 }

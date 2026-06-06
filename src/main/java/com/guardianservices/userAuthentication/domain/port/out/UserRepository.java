@@ -120,4 +120,5 @@ public interface UserRepository {
      */
     boolean existsByUsernameAndProduct(String username, String product);
 
+    Page<User> findByProduct(String product, Pageable pageable);
 }

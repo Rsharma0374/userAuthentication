@@ -50,7 +50,7 @@ public class AdminAuthController {
                     request.getPassword(),
                     request.getFirstName(),
                     request.getLastName(),
-                    request.getProduct()
+                    request.getProductName()
             );
             var user = adminService.registerAdmin(command);
             return ResponseEntity.status(HttpStatus.CREATED).body(userMapper.toResponse(user));
