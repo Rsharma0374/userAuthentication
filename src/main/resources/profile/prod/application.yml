@@ -35,7 +35,7 @@ eureka:
 
 # Server Configuration
 server:
-  port: 10001
+  port: 10009
   servlet:
     context-path: /auth-service
   compression:
