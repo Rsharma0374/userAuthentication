@@ -1,6 +1,19 @@
 spring:
   application:
-    name: AUTH-SERVICE
+    name: auth-service
+
+  kafka:
+#    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:152.67.23.79:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: uam-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
 
   security:
     oauth2:
@@ -8,39 +21,93 @@ spring:
         jwt:
           jwk-set-uri: ${KEYCLOAK_URL:https://keycloak.guardianservices.in}/realms/${KEYCLOAK_REALM:guardian-service}/protocol/openid-connect/certs
 
+# Eureka Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://eureka.guardianservices.in:8761/eureka/}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: false
+    hostname: ${HOSTNAME:localhost}
+    instance-id: ${spring.application.name}:${server.port}
+
+# Server Configuration
 server:
   port: 10001
+  servlet:
+    context-path: /auth-service
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
 
-# Direct internal URL of Email Service (K8s DNS or Docker Compose service name)
+
+# Email Service Configuration
 email:
   service:
-    url: http://email-connector-service:10002
+    url: ${EMAIL_SERVICE_URL:http://email-connector-service:10002}
 
-log:
-  collectionName: UserAuthLog
-
-security:
-  ignored: /**/public
-
-
-# Email connector API
+# Email Connector API
 connector:
   email:
     send:
-      api: https://connector.guardianservices.in/email-connector/send-mail
+      api: ${EMAIL_CONNECTOR_API:http://localhost:10002/email-connector/send-mail}
 
-
+# Password Manager Service
 pass:
   manager:
     user:
       create:
-        url: https://auth.guardianservices.in/password-manager/create-user
+        url: ${PASSWORD_MANAGER_URL:http://localhost:10003/password-manager/create-user}
 
+# Log Collection
+log:
+  collectionName: UserAuthLog
+
+# Security Configuration
+security:
+  ignored: /public/**,/actuator/**,/swagger-ui/**,/api-docs/**
+
+# Management / Actuator
 management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: health,info,metrics,prometheus
+      base-path: /actuator
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    com.userAuthentication: INFO
+    org.springframework.security: INFO
+    org.springframework.cloud: INFO
+    org.keycloak: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/auth-service.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+
+# Swagger/OpenAPI (if enabled)
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html

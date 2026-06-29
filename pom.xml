@@ -164,6 +164,12 @@
 			<artifactId>sdk</artifactId>
 			<version>3.0.2</version>
 		</dependency>
+
+		<!-- Feign Client -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-openfeign</artifactId>
+		</dependency>
 	</dependencies>
 
 	<profiles>
