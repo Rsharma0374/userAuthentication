@@ -30,7 +30,7 @@ eureka:
     register-with-eureka: true
   instance:
     prefer-ip-address: false
-    hostname: ${HOSTNAME:localhost}
+    hostname: ${SERVER_IP:localhost}
     instance-id: ${spring.application.name}:${server.port}
 
 # Server Configuration
