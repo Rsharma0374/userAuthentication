@@ -89,19 +89,28 @@ management:
 # Logging Configuration
 logging:
   level:
-    com.userAuthentication: INFO
+    root: INFO
+
+    # Gateway packages — DEBUG in dev for full request/response detail
+    com.guardianservices.userAuthentication: INFO
+
+    # Spring Security — INFO to avoid credential noise in logs
     org.springframework.security: INFO
-    org.springframework.cloud: INFO
-    org.keycloak: INFO
+
+    # WebFlux router — useful for diagnosing route-matching issues
+    org.springframework.web.reactive: INFO
+
+    # Resilience4j state transitions
+    io.github.resilience4j: INFO
+
+    # Netty — suppress verbose internal logs
+    io.netty: WARN
+    reactor.netty: WARN
+
+  # Structured JSON logging pattern (for Logstash encoder)
+  # Logback config in logback-spring.xml overrides this in prod
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: logs/auth-service.log
-  logback:
-    rollingpolicy:
-      max-file-size: 10MB
-      max-history: 30
 
 # Swagger/OpenAPI (if enabled)
 springdoc:

@@ -77,6 +77,10 @@ public interface AdminJpaRepository extends JpaRepository<AdminJpaEntity, UUID> 
     /**
      * Checks if user exists by username and product.
      */
-    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM AdminJpaEntity u WHERE LOWER(u.username) = LOWER(:username)AND ((:product IS NULL AND u.product IS NULL)OR LOWER(u.product) = LOWER(:product))")
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END " +
+            "FROM AdminJpaEntity u " +
+            "WHERE LOWER(u.username) = LOWER(:username) " +
+            "AND ((:product IS NULL AND u.product IS NULL) " +
+            "     OR LOWER(u.product) = LOWER(CAST(:product AS string)))")
     boolean existsByUsernameAndProduct(@Param("username") String username, @Param("product") String product);
 }
