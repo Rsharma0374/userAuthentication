@@ -39,6 +39,7 @@ public class NotificationService {
         }
         
         outboxEventRepository.save(event);
+        log.info("Notification event {} queued for aggregate {}", type, aggregateId);
     }
 
     @Transactional
@@ -53,5 +54,6 @@ public class NotificationService {
         event.setProtectedPayload("ENCRYPTED".getBytes());
         
         outboxEventRepository.save(event);
+        log.info("Encrypted notification event {} queued for aggregate {}", type, aggregateId);
     }
 }

@@ -4,6 +4,9 @@ import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
 public class Argon2PasswordEncoder implements PasswordEncoder {
 
     private final Argon2 argon2;

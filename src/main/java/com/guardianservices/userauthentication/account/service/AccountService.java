@@ -45,6 +45,15 @@ public class AccountService {
 
     @Transactional
     public User register(String email, String passwordHash) {
+        return registerInternal(email, passwordHash).user();
+    }
+
+    @Transactional
+    public RegistrationResult registerWithOutcome(String email, String passwordHash) {
+        return registerInternal(email, passwordHash);
+    }
+
+    private RegistrationResult registerInternal(String email, String passwordHash) {
         String normalizedEmail = emailNormalizer.normalize(email);
         
         // Check if user already exists with this email (any status except DELETED)
@@ -57,7 +66,7 @@ public class AccountService {
                 if (user.getStatus() == UserStatus.PENDING_VERIFICATION) {
                     sendVerificationEmail(user);
                 }
-                return user;
+                return new RegistrationResult(user, true);
             }
             // If user is DELETED, we can proceed with new registration
         }
@@ -78,8 +87,10 @@ public class AccountService {
         sendVerificationEmail(user);
 
         log.info("User registered: {}", user.getId());
-        return user;
+        return new RegistrationResult(user, false);
     }
+
+    public record RegistrationResult(User user, boolean existingAccount) {}
 
     private void sendVerificationEmail(User user) {
         String token = tokenGenerator.generateToken();

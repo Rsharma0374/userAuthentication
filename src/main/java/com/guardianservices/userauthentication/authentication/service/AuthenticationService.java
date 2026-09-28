@@ -76,10 +76,12 @@ public class AuthenticationService {
         }
 
         if (!passwordValid || user == null) {
+            log.warn("Authentication failed due to invalid credentials");
             throw new UnauthorizedException("Invalid credentials");
         }
 
         if (user.getStatus() != UserStatus.ACTIVE) {
+            log.warn("Authentication rejected for inactive account");
             throw new UnauthorizedException("Account not active");
         }
 
@@ -93,6 +95,7 @@ public class AuthenticationService {
             .anyMatch(ur -> ur.getRole().getIsPrivileged());
 
         if (isPrivileged && !mfaRequired) {
+            log.warn("Authentication rejected because privileged account has no MFA configured");
             throw new UnauthorizedException("MFA required for privileged account");
         }
 
@@ -138,6 +141,7 @@ public class AuthenticationService {
 
         if (!valid) {
             challenge.setAttemptCount(challenge.getAttemptCount() + 1);
+            log.warn("MFA verification failed for user {}", user.getId());
             if (challenge.getAttemptCount() >= authProperties.getMfa().getMaxTotpAttempts()) {
                 challenge.setCompletedAt(clock.now());
                 authChallengeRepository.save(challenge);
@@ -187,6 +191,7 @@ public class AuthenticationService {
 
         authChallengeRepository.save(challenge);
 
+        log.info("MFA challenge created for user {}", user.getId());
         return new AuthenticationResult(
             AuthenticationResult.Type.MFA_REQUIRED,
             challengeId,
@@ -199,23 +204,22 @@ public class AuthenticationService {
     private AuthenticationResult createAuthenticatedSession(User user, String deviceId, String deviceName,
                                                              java.net.InetAddress ipAddress, String userAgent,
                                                              List<String> additionalScopes) {
-        Session session = sessionService.createSession(user, deviceId, deviceName, ipAddress, userAgent);
+        SessionService.SessionCreationResult sessionCreation = sessionService.createSession(
+            user, deviceId, deviceName, ipAddress, userAgent
+        );
+        Session session = sessionCreation.session();
         
         List<String> scopes = new java.util.ArrayList<>(List.of("profile", "objects"));
         scopes.addAll(additionalScopes);
 
         String accessToken = jwtService.createAccessToken(user, session.getId().toString(), scopes);
         
-        SessionService.RefreshTokenResult refreshResult = sessionService.rotateRefreshToken(
-            session.getId().toString(), // This won't work - need to get the actual refresh token
-            deviceId, ipAddress, userAgent
-        );
-
+        log.info("Authentication completed for user {} with session {}", user.getId(), session.getId());
         return new AuthenticationResult(
             AuthenticationResult.Type.SUCCESS,
             null,
             accessToken,
-            refreshResult.getRefreshToken(),
+            sessionCreation.refreshToken(),
             session
         );
     }

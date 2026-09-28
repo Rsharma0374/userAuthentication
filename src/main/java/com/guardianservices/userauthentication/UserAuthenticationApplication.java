@@ -10,6 +10,7 @@ import com.guardianservices.userauthentication.platform.config.AuthProperties;
 import com.guardianservices.userauthentication.platform.config.StorageProperties;
 import com.guardianservices.userauthentication.platform.config.NotificationProperties;
 import org.springframework.context.annotation.Bean;
+import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -19,6 +20,7 @@ import software.amazon.awssdk.services.kms.KmsClient;
 
 @SpringBootApplication(scanBasePackages = {"com.guardianservices.userauthentication"})
 @EnableConfigurationProperties({AuthProperties.class, StorageProperties.class, NotificationProperties.class})
+@Slf4j
 public class UserAuthenticationApplication extends SpringBootServletInitializer {
 
     @Override
@@ -29,6 +31,7 @@ public class UserAuthenticationApplication extends SpringBootServletInitializer 
     public static void main(String[] args) {
         System.setProperty("spring.threads.virtual.enabled", "true");
         SpringApplication.run(UserAuthenticationApplication.class, args);
+        log.info("User authentication service started");
     }
 
     @Bean

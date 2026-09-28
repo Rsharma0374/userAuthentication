@@ -21,6 +21,7 @@ public class ProfileController {
     @GetMapping
     public ResponseEntity<?> getProfile() {
         UserProfile profile = profileService.getProfile(getCurrentUser());
+        log.debug("Profile retrieved");
         return ResponseEntity.ok(Map.of(
             "displayName", profile.getDisplayName(),
             "avatarObjectId", profile.getAvatarObjectId(),
@@ -37,6 +38,7 @@ public class ProfileController {
             request.getLocale(),
             request.getTimezone()
         );
+        log.info("Profile update request completed");
         return ResponseEntity.ok(Map.of(
             "displayName", profile.getDisplayName(),
             "avatarObjectId", profile.getAvatarObjectId(),
@@ -48,12 +50,14 @@ public class ProfileController {
     @PostMapping("/avatar")
     public ResponseEntity<?> setAvatar(@RequestParam UUID objectId) {
         UserProfile profile = profileService.updateAvatar(getCurrentUser(), objectId);
+        log.info("Avatar update request completed");
         return ResponseEntity.ok(Map.of("avatarObjectId", profile.getAvatarObjectId()));
     }
 
     @DeleteMapping("/avatar")
     public ResponseEntity<?> deleteAvatar() {
         profileService.deleteAvatar(getCurrentUser());
+        log.info("Avatar deletion request completed");
         return ResponseEntity.ok(Map.of("message", "Avatar removed"));
     }
 

@@ -76,7 +76,8 @@ public class ObjectStorageService {
 
         Map<?, ?> signedHeaders = presignedRequest.signedHeaders();
         Map<?, ?> headers = presignedRequest.httpRequest().headers();
-        
+
+        log.info("Upload intent created for object {} by user {}", object.getId(), user.getId());
         return new UploadIntent(
             object.getId(),
             presignedRequest.url().toString(),
@@ -193,6 +194,7 @@ public class ObjectStorageService {
         software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest presignedUrl = 
             s3Presigner.presignGetObject(presignRequest);
 
+        log.info("Download URL generated for object {} by user {}", objectId, user.getId());
         return new DownloadUrl(presignedUrl.url().toString(), object.getCleanKey());
     }
 
@@ -215,6 +217,7 @@ public class ObjectStorageService {
         object.setStatus(ObjectStatus.DELETED);
         object.setUpdatedAt(clock.now());
         objectRepository.save(object);
+        log.info("Object {} deleted for user {}", objectId, user.getId());
     }
 
     private byte[] encryptSecret(String secret) {

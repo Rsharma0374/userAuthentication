@@ -44,6 +44,7 @@ public class ActionToken extends AbstractEntity {
     private User user;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "purpose", nullable = false)
     private ActionTokenPurpose purpose;
 

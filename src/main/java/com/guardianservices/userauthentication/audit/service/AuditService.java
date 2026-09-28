@@ -38,6 +38,7 @@ public class AuditService {
         event.setCreatedAt(OffsetDateTime.now());
 
         auditEventRepository.save(event);
+        log.info("Audit event recorded: action={}, outcome={}", action, outcome);
     }
 
     @Transactional

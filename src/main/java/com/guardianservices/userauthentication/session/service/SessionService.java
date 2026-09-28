@@ -35,8 +35,8 @@ public class SessionService {
     private final com.guardianservices.userauthentication.platform.config.AuthProperties authProperties;
 
     @Transactional
-    public Session createSession(User user, String deviceId, String deviceName, 
-                                 java.net.InetAddress ipAddress, String userAgent) {
+    public SessionCreationResult createSession(User user, String deviceId, String deviceName,
+                                               java.net.InetAddress ipAddress, String userAgent) {
         OffsetDateTime now = clock.now();
         OffsetDateTime idleExpiresAt = now.plus(authProperties.getRefresh().getIdleTtl());
         OffsetDateTime absoluteExpiresAt = now.plus(authProperties.getRefresh().getAbsoluteTtl());
@@ -67,7 +67,7 @@ public class SessionService {
         refreshTokenRepository.save(rt);
 
         log.info("Created session {} for user {}", session.getId(), user.getId());
-        return session;
+        return new SessionCreationResult(session, refreshToken);
     }
 
     @Transactional
@@ -217,4 +217,6 @@ public class SessionService {
             return session;
         }
     }
+
+    public record SessionCreationResult(Session session, String refreshToken) {}
 }

@@ -47,6 +47,7 @@ public class User extends AbstractEntity {
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false)
     private UserStatus status = UserStatus.PENDING_VERIFICATION;
 

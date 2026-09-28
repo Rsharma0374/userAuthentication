@@ -33,6 +33,7 @@ public class SessionController {
         }
 
         if (refreshToken == null) {
+            log.warn("Session refresh request rejected because no refresh token was provided");
             return ResponseEntity.status(401).body(Map.of("error", "Refresh token required"));
         }
 
@@ -44,6 +45,7 @@ public class SessionController {
         );
 
         setRefreshTokenCookie(httpResponse, result.getRefreshToken());
+        log.info("Session refresh completed for session {}", result.getSession().getId());
 
         // Generate new access token (would use JwtService)
         return ResponseEntity.ok(Map.of(
@@ -62,6 +64,7 @@ public class SessionController {
         }
         
         clearRefreshTokenCookie(httpResponse);
+        log.info("Logout request completed");
         return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
 
@@ -86,12 +89,14 @@ public class SessionController {
     public ResponseEntity<?> revokeSession(@PathVariable UUID id,
                                             HttpServletRequest httpRequest) {
         sessionService.revokeSession(id, SessionRevocationReason.USER_LOGOUT);
+        log.info("Session revocation request completed for session {}", id);
         return ResponseEntity.ok(Map.of("message", "Session revoked"));
     }
 
     @PostMapping("/logout-all")
     public ResponseEntity<?> logoutAll(HttpServletRequest httpRequest) {
         sessionService.revokeAllUserSessions(getCurrentUser(), SessionRevocationReason.USER_LOGOUT_ALL);
+        log.info("Logout-all request completed");
         return ResponseEntity.ok(Map.of("message", "All sessions revoked"));
     }
 

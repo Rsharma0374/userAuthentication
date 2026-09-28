@@ -2,6 +2,7 @@ package com.guardianservices.userauthentication.common;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Version;
 import java.time.OffsetDateTime;
 import lombok.Getter;
@@ -21,4 +22,14 @@ public abstract class AbstractEntity {
 
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    @PrePersist
+    private void initializeTimestamps() {
+        if (createdAt == null) {
+            createdAt = OffsetDateTime.now();
+        }
+        if (updatedAt == null) {
+            updatedAt = createdAt;
+        }
+    }
 }

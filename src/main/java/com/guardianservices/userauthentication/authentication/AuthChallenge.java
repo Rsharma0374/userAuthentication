@@ -6,6 +6,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
@@ -31,6 +33,7 @@ import org.hibernate.type.SqlTypes;
 public class AuthChallenge extends AbstractEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.UUID)
     private UUID id;
@@ -43,6 +46,7 @@ public class AuthChallenge extends AbstractEntity {
     private byte[] challengeHash;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "purpose", nullable = false)
     private AuthChallengePurpose purpose;
 

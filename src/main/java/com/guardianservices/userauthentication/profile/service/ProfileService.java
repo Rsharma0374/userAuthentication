@@ -50,7 +50,9 @@ public class ProfileService {
             profile.setTimezone(timezone);
         }
 
-        return profileRepository.save(profile);
+        UserProfile updatedProfile = profileRepository.save(profile);
+        log.info("Profile updated for user {}", user.getId());
+        return updatedProfile;
     }
 
     @Transactional
@@ -71,7 +73,9 @@ public class ProfileService {
         }
 
         profile.setAvatarObjectId(objectId);
-        return profileRepository.save(profile);
+        UserProfile updatedProfile = profileRepository.save(profile);
+        log.info("Avatar {} assigned to user {}", objectId, user.getId());
+        return updatedProfile;
     }
 
     @Transactional
@@ -81,6 +85,7 @@ public class ProfileService {
 
         profile.setAvatarObjectId(null);
         profileRepository.save(profile);
+        log.info("Avatar removed for user {}", user.getId());
     }
 
     private UserProfile createDefaultProfile(User user) {

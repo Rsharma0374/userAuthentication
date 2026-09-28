@@ -25,6 +25,7 @@ public class ObjectController {
             request.getContentType(),
             request.getSize()
         );
+        log.info("Upload intent request completed for object {}", intent.objectId());
         return ResponseEntity.ok(Map.of(
             "objectId", intent.objectId(),
             "uploadUrl", intent.uploadUrl(),
@@ -37,6 +38,7 @@ public class ObjectController {
     public ResponseEntity<?> completeUpload(@PathVariable UUID id,
                                              @Valid @RequestBody CompleteUploadRequest request) {
         objectStorageService.completeUpload(id, request.getVersionId());
+        log.info("Upload completion request processed for object {}", id);
         return ResponseEntity.ok(Map.of("message", "Upload completed, processing started"));
     }
 
@@ -49,12 +51,14 @@ public class ObjectController {
     @GetMapping("/objects/{id}/download")
     public ResponseEntity<?> downloadObject(@PathVariable UUID id) {
         ObjectStorageService.DownloadUrl url = objectStorageService.generateDownloadUrl(getCurrentUser(), id);
+        log.info("Download request processed for object {}", id);
         return ResponseEntity.ok(Map.of("downloadUrl", url.url()));
     }
 
     @DeleteMapping("/objects/{id}")
     public ResponseEntity<?> deleteObject(@PathVariable UUID id) {
         objectStorageService.deleteObject(getCurrentUser(), id);
+        log.info("Object deletion request completed for object {}", id);
         return ResponseEntity.ok(Map.of("message", "Object deletion initiated"));
     }
 
