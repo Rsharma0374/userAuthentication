@@ -1,0 +1,64 @@
+package com.guardianservices.userauthentication.objectstorage.controller;
+
+import com.guardianservices.userauthentication.objectstorage.service.ObjectStorageService;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.util.Map;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequestMapping("/v1")
+@RequiredArgsConstructor
+public class ObjectController {
+
+    private final ObjectStorageService objectStorageService;
+
+    @PostMapping("/uploads")
+    public ResponseEntity<?> createUploadIntent(@Valid @RequestBody UploadIntentRequest request) {
+        ObjectStorageService.UploadIntent intent = objectStorageService.createUploadIntent(
+            getCurrentUser(),
+            request.getPurpose(),
+            request.getContentType(),
+            request.getSize()
+        );
+        return ResponseEntity.ok(Map.of(
+            "objectId", intent.objectId(),
+            "uploadUrl", intent.uploadUrl(),
+            "headers", intent.headers(),
+            "expiresAt", intent.expiresAt()
+        ));
+    }
+
+    @PostMapping("/uploads/{id}/complete")
+    public ResponseEntity<?> completeUpload(@PathVariable UUID id,
+                                             @Valid @RequestBody CompleteUploadRequest request) {
+        objectStorageService.completeUpload(id, request.getVersionId());
+        return ResponseEntity.ok(Map.of("message", "Upload completed, processing started"));
+    }
+
+    @GetMapping("/uploads/{id}")
+    public ResponseEntity<?> getUploadStatus(@PathVariable UUID id) {
+        // Would return processing status
+        return ResponseEntity.ok(Map.of("status", "PROCESSING"));
+    }
+
+    @GetMapping("/objects/{id}/download")
+    public ResponseEntity<?> downloadObject(@PathVariable UUID id) {
+        ObjectStorageService.DownloadUrl url = objectStorageService.generateDownloadUrl(getCurrentUser(), id);
+        return ResponseEntity.ok(Map.of("downloadUrl", url.url()));
+    }
+
+    @DeleteMapping("/objects/{id}")
+    public ResponseEntity<?> deleteObject(@PathVariable UUID id) {
+        objectStorageService.deleteObject(getCurrentUser(), id);
+        return ResponseEntity.ok(Map.of("message", "Object deletion initiated"));
+    }
+
+    private com.guardianservices.userauthentication.account.User getCurrentUser() {
+        return null;
+    }
+}

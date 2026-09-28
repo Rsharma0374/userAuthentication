@@ -1,37 +1,46 @@
-# Build Stage (Maven + Java 21)
-FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
+# Build stage
+FROM maven:3.9-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-# Cache dependencies first (improves build speed)
+# Copy pom.xml first for dependency caching
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
+COPY .mvn .mvn
+COPY mvnw mvnw.cmd ./
 
-# Build the application
+# Download dependencies
+RUN ./mvnw dependency:go-offline -B
+
+# Copy source code
 COPY src ./src
-RUN mvn clean package -DskipTests -P prod -B
 
-# Verify JAR file exists (debugging)
-RUN ls -la /app/target/
+# Build application
+RUN ./mvnw clean package -DskipTests -Pprod
 
-# Runtime Stage (Lightweight JRE)
+# Runtime stage
 FROM eclipse-temurin:21-jre-alpine
 
-# Security: Non-root user
-RUN addgroup -S spring && adduser -S spring -G spring
-USER spring
-
-# Install curl for health checks (optional)
-USER root
-RUN apk add --no-cache curl
-USER spring
-
 WORKDIR /app
 
-# Copy JAR from build stage
-COPY --from=build --chown=spring:spring /app/target/*.jar auther-service.jar
+# Create non-root user
+RUN addgroup -g 1000 -S appgroup && \
+    adduser -u 1000 -S appuser -G appgroup
 
+# Copy built JAR
+COPY --from=build /app/target/*.jar app.jar
 
-# Run Eureka
-EXPOSE 10001
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar auther-service.jar --spring.profiles.active=prod"]
+# Change ownership
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/actuator/health/liveness || exit 1
+
+# Run application
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
