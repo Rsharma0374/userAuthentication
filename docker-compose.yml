@@ -52,18 +52,6 @@ services:
       timeout: 10s
       retries: 5
 
-  mailhog:
-    image: mailhog/mailhog:v1.0.1
-    container_name: identity-mailhog
-    ports:
-      - "1025:1025"  # SMTP
-      - "8025:8025"  # Web UI
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "1025"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # Uncomment to run the app in Docker
   # app:
   #   build:
@@ -76,8 +64,6 @@ services:
   #     - DATABASE_USERNAME=identity_user
   #     - DATABASE_PASSWORD=identity_pass
   #     - REDIS_HOST=redis
-  #     - MAIL_HOST=mailhog
-  #     - MAIL_PORT=1025
   #   ports:
   #     - "8080:8080"
   #   depends_on:
@@ -87,9 +73,6 @@ services:
   #       condition: service_healthy
   #     localstack:
   #       condition: service_healthy
-  #     mailhog:
-  #       condition: service_healthy
-
 volumes:
   postgres_data:
   redis_data:

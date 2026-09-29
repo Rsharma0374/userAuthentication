@@ -1,10 +1,11 @@
 package com.guardianservices.userauthentication.profile.controller;
 
 import jakarta.validation.constraints.Size;
+import com.guardianservices.userauthentication.common.ProductAwareRequest;
 import lombok.Data;
 
 @Data
-public class ProfileUpdateRequest {
+public class ProfileUpdateRequest extends ProductAwareRequest {
 
     @Size(max = 100)
     private String displayName;

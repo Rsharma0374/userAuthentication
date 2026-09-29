@@ -1,6 +1,8 @@
 package com.guardianservices.userauthentication.objectstorage.controller;
 
 import com.guardianservices.userauthentication.objectstorage.service.ObjectStorageService;
+import com.guardianservices.userauthentication.product.ProductScopeValidator;
+import com.guardianservices.userauthentication.product.CurrentUserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,9 +18,12 @@ import lombok.extern.slf4j.Slf4j;
 public class ObjectController {
 
     private final ObjectStorageService objectStorageService;
+    private final ProductScopeValidator productScopeValidator;
+    private final CurrentUserService currentUserService;
 
     @PostMapping("/uploads")
     public ResponseEntity<?> createUploadIntent(@Valid @RequestBody UploadIntentRequest request) {
+        productScopeValidator.assertMatchesAuthenticatedProduct(request.getProductName());
         ObjectStorageService.UploadIntent intent = objectStorageService.createUploadIntent(
             getCurrentUser(),
             request.getPurpose(),
@@ -37,15 +42,16 @@ public class ObjectController {
     @PostMapping("/uploads/{id}/complete")
     public ResponseEntity<?> completeUpload(@PathVariable UUID id,
                                              @Valid @RequestBody CompleteUploadRequest request) {
-        objectStorageService.completeUpload(id, request.getVersionId());
+        productScopeValidator.assertMatchesAuthenticatedProduct(request.getProductName());
+        objectStorageService.completeUpload(getCurrentUser(), id, request.getVersionId());
         log.info("Upload completion request processed for object {}", id);
         return ResponseEntity.ok(Map.of("message", "Upload completed, processing started"));
     }
 
     @GetMapping("/uploads/{id}")
     public ResponseEntity<?> getUploadStatus(@PathVariable UUID id) {
-        // Would return processing status
-        return ResponseEntity.ok(Map.of("status", "PROCESSING"));
+        var object = objectStorageService.getUploadStatus(getCurrentUser(), id);
+        return ResponseEntity.ok(Map.of("status", object.getStatus()));
     }
 
     @GetMapping("/objects/{id}/download")
@@ -63,6 +69,6 @@ public class ObjectController {
     }
 
     private com.guardianservices.userauthentication.account.User getCurrentUser() {
-        return null;
+        return currentUserService.getCurrentUser();
     }
 }

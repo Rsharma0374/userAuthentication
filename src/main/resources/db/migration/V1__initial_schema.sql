@@ -208,6 +208,71 @@ CREATE INDEX idx_objects_quarantine_key ON objects(quarantine_key);
 CREATE INDEX idx_objects_clean_key ON objects(clean_key);
 CREATE INDEX idx_objects_expires_at ON objects(expires_at);
 
+-- email_templates table
+CREATE TABLE email_templates (
+    template_key VARCHAR(100) PRIMARY KEY,
+    subject TEXT NOT NULL,
+    body TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO email_templates (template_key, subject, body) VALUES (
+    'EMAIL_VERIFICATION',
+    'Verify your email address to activate your account',
+    $email$
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your Email</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f5f7; font-family: Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+          <tr>
+            <td style="background:#4f46e5; padding:24px; text-align:center;">
+              <h1 style="color:#ffffff; margin:0; font-size:20px;">Verify Your Email Address</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px; color:#333333; font-size:15px; line-height:1.6;">
+              <p>Hi,</p>
+              <p>Thanks for signing up! Please confirm your email address to activate your account.</p>
+              <table cellpadding="0" cellspacing="0" style="margin:24px 0;">
+                <tr>
+                  <td align="center" style="border-radius:6px; background:#4f46e5;">
+                    <a href="{{verificationUrl}}"
+                       style="display:inline-block; padding:12px 28px; color:#ffffff; text-decoration:none; font-weight:bold; font-size:15px;">
+                      Verify Email
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p>Or copy and paste this link into your browser:</p>
+              <p style="word-break:break-all; color:#4f46e5; font-size:13px;">{{verificationUrl}}</p>
+              <p style="color:#888888; font-size:13px; margin-top:24px;">
+                This link will expire in {{expiresIn}}. If you didn't create an account, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px; background:#f9fafb; color:#999999; font-size:12px; text-align:center;">
+              &copy; 2026 YourCompany. All rights reserved.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+$email$
+);
+
 -- outbox_events table
 CREATE TABLE outbox_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -294,6 +359,7 @@ CREATE TRIGGER update_objects_updated_at BEFORE UPDATE ON objects FOR EACH ROW E
 CREATE TRIGGER update_action_tokens_updated_at BEFORE UPDATE ON action_tokens FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_mfa_recovery_codes_updated_at BEFORE UPDATE ON mfa_recovery_codes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_auth_challenges_updated_at BEFORE UPDATE ON auth_challenges FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_email_templates_updated_at BEFORE UPDATE ON email_templates FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_outbox_events_updated_at BEFORE UPDATE ON outbox_events FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_idempotency_requests_updated_at BEFORE UPDATE ON idempotency_requests FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_audit_events_updated_at BEFORE UPDATE ON audit_events FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

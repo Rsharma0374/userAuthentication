@@ -3,6 +3,8 @@ package com.guardianservices.userauthentication.session.controller;
 import com.guardianservices.userauthentication.session.Session;
 import com.guardianservices.userauthentication.session.SessionRevocationReason;
 import com.guardianservices.userauthentication.session.service.SessionService;
+import com.guardianservices.userauthentication.product.ProductScopeValidator;
+import com.guardianservices.userauthentication.product.CurrentUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -21,6 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 public class SessionController {
 
     private final SessionService sessionService;
+    private final ProductScopeValidator productScopeValidator;
+    private final CurrentUserService currentUserService;
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@Valid @RequestBody RefreshRequest request,
@@ -38,6 +42,7 @@ public class SessionController {
         }
 
         SessionService.RefreshTokenResult result = sessionService.rotateRefreshToken(
+            request.getProductName(),
             refreshToken,
             request.getDeviceId(),
             getClientIp(httpRequest),
@@ -88,7 +93,11 @@ public class SessionController {
     @DeleteMapping("/sessions/{id}")
     public ResponseEntity<?> revokeSession(@PathVariable UUID id,
                                             HttpServletRequest httpRequest) {
-        sessionService.revokeSession(id, SessionRevocationReason.USER_LOGOUT);
+        sessionService.revokeSession(
+            productScopeValidator.getAuthenticatedProductName(),
+            id,
+            SessionRevocationReason.USER_LOGOUT
+        );
         log.info("Session revocation request completed for session {}", id);
         return ResponseEntity.ok(Map.of("message", "Session revoked"));
     }
@@ -138,6 +147,6 @@ public class SessionController {
     }
 
     private com.guardianservices.userauthentication.account.User getCurrentUser() {
-        return null;
+        return currentUserService.getCurrentUser();
     }
 }

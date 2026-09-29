@@ -16,6 +16,7 @@ import com.guardianservices.userauthentication.common.util.Clock;
 import com.guardianservices.userauthentication.common.util.SecureTokenGenerator;
 import com.guardianservices.userauthentication.common.util.TokenHasher;
 import com.guardianservices.userauthentication.platform.config.AuthProperties;
+import com.guardianservices.userauthentication.product.ProductConfigurationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
@@ -42,6 +43,7 @@ public class MfaService {
     private final TokenHasher tokenHasher;
     private final Clock clock;
     private final AuthProperties authProperties;
+    private final ProductConfigurationService productConfigurationService;
 
     private final GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator();
 
@@ -70,8 +72,10 @@ public class MfaService {
         mfaCredentialRepository.save(credential);
 
         // Generate QR code
+        String issuer = productConfigurationService.getSettings(user.getProductName())
+            .getString("mfaIssuer", authProperties.getMfa().getIssuer());
         String qrCodeUrl = GoogleAuthenticatorQRGenerator.getOtpAuthURL(
-            authProperties.getMfa().getIssuer(),
+            issuer,
             user.getEmailOriginal(),
             key
         );
@@ -143,8 +147,21 @@ public class MfaService {
 
     private List<String> generateRecoveryCodes(User user) {
         List<String> codes = new ArrayList<>();
-        for (int i = 0; i < authProperties.getMfa().getRecoveryCodeCount(); i++) {
-            String code = tokenGenerator.generateToken(authProperties.getMfa().getRecoveryCodeLength());
+        var product = productConfigurationService.getSettings(user.getProductName());
+        int recoveryCodeCount = product.getBoundedInt(
+            "recoveryCodeCount",
+            authProperties.getMfa().getRecoveryCodeCount(),
+            1,
+            20
+        );
+        int recoveryCodeLength = product.getBoundedInt(
+            "recoveryCodeLength",
+            authProperties.getMfa().getRecoveryCodeLength(),
+            8,
+            64
+        );
+        for (int i = 0; i < recoveryCodeCount; i++) {
+            String code = tokenGenerator.generateToken(recoveryCodeLength);
             codes.add(formatRecoveryCode(code));
             
             MfaRecoveryCode rc = new MfaRecoveryCode();

@@ -29,6 +29,7 @@ public class JwtDecoderImpl implements JwtDecoder {
             .claim("sub", result.getSubject())
             .claim("jti", result.getJti())
             .claim("sid", result.getSessionId())
+            .claim("productName", result.getProductName())
             .claim("scopes", result.getScopes())
             .claim("roles", result.getRoles())
             .issuedAt(result.getExpiry().minusSeconds(600))

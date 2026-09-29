@@ -100,6 +100,22 @@ OpenAPI Spec: `http://localhost:8080/api/api-docs`
 | GET | /v1/objects/{id}/download | Download object |
 | DELETE | /v1/objects/{id} | Delete object |
 
+### Product-specific accounts
+
+Authentication data is isolated by `productName`. Include the configured product key in every JSON request body, for example:
+
+```json
+{
+  "productName": "password-manager",
+  "email": "user@example.com",
+  "password": "use-a-long-unique-passphrase"
+}
+```
+
+The seeded keys are `ai-log-analyser`, `password-manager`, and `document-utility`. Existing accounts are migrated under `legacy`; continue sending that key for those accounts unless they are explicitly migrated. `productName` is required and case-insensitive; the value is normalized to lowercase. The same email can register separately in each product. Access tokens carry a signed `productName` claim, and authenticated request bodies must match that claim. Requests without a body are scoped by the access token. `productName` selects an account namespace; it does not authenticate the calling application.
+
+Product settings and email templates are stored separately for each product. Update a product's `settings` JSONB through the database administration process to override its JWT audience, `frontendBaseUrl`, verification/reset/email-change paths and TTLs, access/refresh token TTLs, MFA issuer and limits, password hashing settings, upload quotas/size/type limits, quarantine TTL, and upload/download URL TTLs. Unspecified settings continue to use deployment defaults. Product-specific email subjects and HTML bodies use the `(product_name, template_key)` key in `email_templates`.
+
 ## Configuration
 
 ### Profiles

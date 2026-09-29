@@ -74,8 +74,9 @@ public class UserAuthenticationApplication extends SpringBootServletInitializer 
 
     @Bean
     public JwtService jwtService(AuthProperties authProperties,
-                                  com.guardianservices.userauthentication.account.repository.UserRoleRepository userRoleRepository) {
-        JwtService jwtService = new JwtService(authProperties, userRoleRepository);
+                                  com.guardianservices.userauthentication.account.repository.UserRoleRepository userRoleRepository,
+                                  com.guardianservices.userauthentication.product.ProductConfigurationService productConfigurationService) {
+        JwtService jwtService = new JwtService(authProperties, userRoleRepository, productConfigurationService);
         jwtService.initialize();
         return jwtService;
     }

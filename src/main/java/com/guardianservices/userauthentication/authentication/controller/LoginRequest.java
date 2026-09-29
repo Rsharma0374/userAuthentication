@@ -3,10 +3,11 @@ package com.guardianservices.userauthentication.authentication.controller;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import com.guardianservices.userauthentication.common.ProductAwareRequest;
 import lombok.Data;
 
 @Data
-public class LoginRequest {
+public class LoginRequest extends ProductAwareRequest {
 
     @NotBlank
     @Email
@@ -14,7 +15,7 @@ public class LoginRequest {
     private String email;
 
     @NotBlank
-    @Size(max = 128)
+    @Size(max = 256)
     private String password;
 
     private String deviceId;

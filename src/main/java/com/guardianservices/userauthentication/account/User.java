@@ -23,9 +23,13 @@ import org.hibernate.type.SqlTypes;
 @Entity
 @Table(
     name = "users",
-    uniqueConstraints = @UniqueConstraint(name = "uk_users_email_normalized", columnNames = "email_normalized"),
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_users_product_email",
+        columnNames = {"product_name", "email_normalized"}
+    ),
     indexes = {
-        @Index(name = "idx_users_status", columnList = "status")
+        @Index(name = "idx_users_status", columnList = "status"),
+        @Index(name = "idx_users_product_email", columnList = "product_name, email_normalized")
     }
 )
 public class User extends AbstractEntity {
@@ -37,10 +41,13 @@ public class User extends AbstractEntity {
     @GenericGenerator(name = "uuid2", strategy = "org.hibernate.id.UUIDGenerator")
     private UUID id;
 
+    @Column(name = "product_name", nullable = false, length = 100)
+    private String productName;
+
     @Column(name = "email_original", nullable = false, length = 320)
     private String emailOriginal;
 
-    @Column(name = "email_normalized", nullable = false, unique = true, length = 320)
+    @Column(name = "email_normalized", nullable = false, length = 320)
     private String emailNormalized;
 
     @Column(name = "password_hash", nullable = false, columnDefinition = "TEXT")

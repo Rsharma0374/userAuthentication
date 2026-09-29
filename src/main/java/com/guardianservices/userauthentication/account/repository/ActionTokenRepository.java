@@ -17,11 +17,12 @@ import jakarta.persistence.LockModeType;
 @Repository
 public interface ActionTokenRepository extends JpaRepository<ActionToken, UUID> {
 
-    Optional<ActionToken> findByTokenHash(byte[] tokenHash);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT at FROM ActionToken at WHERE at.tokenHash = :tokenHash AND at.consumedAt IS NULL")
-    Optional<ActionToken> findActiveByTokenHashForUpdate(@Param("tokenHash") byte[] tokenHash);
+    @Query("SELECT at FROM ActionToken at WHERE at.tokenHash = :tokenHash AND at.consumedAt IS NULL AND at.user.productName = :productName")
+    Optional<ActionToken> findActiveByTokenHashForUpdate(
+        @Param("tokenHash") byte[] tokenHash,
+        @Param("productName") String productName
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT at FROM ActionToken at WHERE at.user = :user AND at.purpose = :purpose AND at.consumedAt IS NULL ORDER BY at.createdAt DESC")

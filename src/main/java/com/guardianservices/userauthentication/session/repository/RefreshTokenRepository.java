@@ -16,17 +16,12 @@ import jakarta.persistence.LockModeType;
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
 
-    Optional<RefreshToken> findByTokenHash(byte[] tokenHash);
-
-    Optional<RefreshToken> findByTokenHashAndConsumedAtIsNull(byte[] tokenHash);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT rt FROM RefreshToken rt WHERE rt.tokenHash = :tokenHash AND rt.consumedAt IS NULL")
-    Optional<RefreshToken> findActiveByTokenHashForUpdate(@Param("tokenHash") byte[] tokenHash);
-
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT rt FROM RefreshToken rt JOIN rt.session s WHERE rt.tokenHash = :tokenHash AND rt.consumedAt IS NULL AND s.revokedAt IS NULL")
-    Optional<RefreshToken> findActiveByTokenHashWithActiveSessionForUpdate(@Param("tokenHash") byte[] tokenHash);
+    @Query("SELECT rt FROM RefreshToken rt JOIN rt.session s WHERE rt.tokenHash = :tokenHash AND rt.consumedAt IS NULL AND s.revokedAt IS NULL AND s.user.productName = :productName")
+    Optional<RefreshToken> findActiveByTokenHashWithActiveSessionForUpdate(
+        @Param("tokenHash") byte[] tokenHash,
+        @Param("productName") String productName
+    );
 
     @Query("SELECT rt FROM RefreshToken rt WHERE rt.parentToken.id = :parentTokenId")
     Optional<RefreshToken> findByParentTokenId(@Param("parentTokenId") UUID parentTokenId);

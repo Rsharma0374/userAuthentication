@@ -11,13 +11,21 @@ public class JwtAuthenticationToken implements Authentication {
 
     private final String subject;
     private final String sessionId;
+    private final String productName;
     private final List<String> scopes;
     private final List<String> roles;
     private boolean authenticated = true;
 
-    public JwtAuthenticationToken(String subject, String sessionId, List<String> scopes, List<String> roles) {
+    public JwtAuthenticationToken(
+        String subject,
+        String sessionId,
+        String productName,
+        List<String> scopes,
+        List<String> roles
+    ) {
         this.subject = subject;
         this.sessionId = sessionId;
+        this.productName = productName;
         this.scopes = scopes;
         this.roles = roles;
     }
@@ -65,6 +73,10 @@ public class JwtAuthenticationToken implements Authentication {
 
     public String getSessionId() {
         return sessionId;
+    }
+
+    public String getProductName() {
+        return productName;
     }
 
     public List<String> getScopes() {

@@ -16,11 +16,12 @@ import jakarta.persistence.LockModeType;
 @Repository
 public interface AuthChallengeRepository extends JpaRepository<AuthChallenge, UUID> {
 
-    Optional<AuthChallenge> findByChallengeHash(byte[] challengeHash);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT ac FROM AuthChallenge ac WHERE ac.challengeHash = :challengeHash AND ac.completedAt IS NULL")
-    Optional<AuthChallenge> findActiveByChallengeHashForUpdate(@Param("challengeHash") byte[] challengeHash);
+    @Query("SELECT ac FROM AuthChallenge ac WHERE ac.challengeHash = :challengeHash AND ac.completedAt IS NULL AND ac.user.productName = :productName")
+    Optional<AuthChallenge> findActiveByChallengeHashForUpdate(
+        @Param("challengeHash") byte[] challengeHash,
+        @Param("productName") String productName
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT ac FROM AuthChallenge ac WHERE ac.user = :user AND ac.purpose = :purpose AND ac.completedAt IS NULL ORDER BY ac.createdAt DESC")

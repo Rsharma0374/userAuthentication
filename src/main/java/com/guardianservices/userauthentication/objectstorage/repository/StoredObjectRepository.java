@@ -26,8 +26,13 @@ public interface StoredObjectRepository extends JpaRepository<StoredObject, UUID
     Optional<StoredObject> findByCleanKey(String cleanKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT o FROM StoredObject o WHERE o.id = :id")
-    Optional<StoredObject> findByIdForUpdate(@Param("id") UUID id);
+    @Query("SELECT o FROM StoredObject o WHERE o.id = :id AND o.ownerUser = :user")
+    Optional<StoredObject> findByOwnerAndIdForUpdate(
+        @Param("user") User user,
+        @Param("id") UUID id
+    );
+
+    Optional<StoredObject> findByOwnerUserAndId(User ownerUser, UUID id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM StoredObject o WHERE o.quarantineKey = :key")

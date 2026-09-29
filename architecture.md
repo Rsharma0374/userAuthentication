@@ -68,6 +68,8 @@ Commit replay-triggered revocation even when returning an authentication error; 
 
 Use /v1, JSON, explicit request/response DTOs, bounded pagination, and application/problem+json error responses without stack traces. Publish OpenAPI describing authentication, cookies, CSRF, validation, errors, and idempotency. Never expose persistence entities directly.
 
+Every request body includes a required `productName` selected from the active products configured in PostgreSQL. Normalize product keys before lookup. Public account, challenge, and refresh-token queries must scope by product; access tokens carry the signed product key and authenticated request bodies must match it. Derive product scope from the verified access token for authenticated requests without a body. The product key selects a data namespace; it is not proof of the calling service's identity.
+
 | Method and path | Purpose and authorization |
 |---|---|
 | POST /v1/auth/register | Public, rate-limited registration; generic 202 |
@@ -103,7 +105,9 @@ Define separate, explicitly authorized internal or administrative APIs only when
 
 | Table | Essential fields and constraints |
 |---|---|
-| users | id UUID PK, email_original, email_normalized UNIQUE NOT NULL, password_hash, status, email_verified_at, credentials_changed_at, created_at, updated_at, version |
+| products | product_name PK, display_name, per-product auth/notification/storage settings JSONB, active, version |
+| users | id UUID PK, product_name FK, email_original, email_normalized, UNIQUE(product_name, email_normalized), password_hash, status, email_verified_at, credentials_changed_at, created_at, updated_at, version |
+| email_templates | product_name FK, template_key, subject, body, composite PK (product_name, template_key) |
 | user_profiles | user_id PK/FK, display_name, avatar_object_id nullable FK, allowlisted optional fields, version |
 | roles / user_roles | Unique role name; composite unique user-role association |
 | sessions | id UUID PK, user_id FK, created_at, last_used_at, idle_expires_at, absolute_expires_at, revoked_at, reason, safe device metadata |

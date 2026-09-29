@@ -16,12 +16,16 @@ import com.guardianservices.userauthentication.common.util.SecureTokenGenerator;
 import com.guardianservices.userauthentication.common.util.TokenHasher;
 import com.guardianservices.userauthentication.notification.OutboxEvent;
 import com.guardianservices.userauthentication.notification.repository.OutboxEventRepository;
+import com.guardianservices.userauthentication.notification.service.EmailService;
+import com.guardianservices.userauthentication.product.ProductConfigurationService;
+import com.guardianservices.userauthentication.product.ProductConfigurationService.ProductSettings;
 import com.guardianservices.userauthentication.platform.config.AuthProperties;
 import com.guardianservices.userauthentication.platform.config.NotificationProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,22 +46,27 @@ public class AccountService {
     private final Clock clock;
     private final AuthProperties authProperties;
     private final NotificationProperties notificationProperties;
+    private final EmailService emailService;
+    private final ProductConfigurationService productConfigurationService;
 
     @Transactional
-    public User register(String email, String passwordHash) {
-        return registerInternal(email, passwordHash).user();
+    public User register(String productName, String email, String passwordHash) {
+        return registerInternal(productName, email, passwordHash).user();
     }
 
     @Transactional
-    public RegistrationResult registerWithOutcome(String email, String passwordHash) {
-        return registerInternal(email, passwordHash);
+    public RegistrationResult registerWithOutcome(String productName, String email, String passwordHash) {
+        return registerInternal(productName, email, passwordHash);
     }
 
-    private RegistrationResult registerInternal(String email, String passwordHash) {
+    private RegistrationResult registerInternal(String productName, String email, String passwordHash) {
+        ProductSettings product = productConfigurationService.getSettings(productName);
         String normalizedEmail = emailNormalizer.normalize(email);
         
-        // Check if user already exists with this email (any status except DELETED)
-        Optional<User> existingUser = userRepository.findByEmailNormalized(normalizedEmail);
+        Optional<User> existingUser = userRepository.findByProductNameAndEmailNormalized(
+            product.productName(),
+            normalizedEmail
+        );
         if (existingUser.isPresent()) {
             User user = existingUser.get();
             if (user.getStatus() != UserStatus.DELETED) {
@@ -73,6 +82,7 @@ public class AccountService {
 
         // Create new user
         User user = new User();
+        user.setProductName(product.productName());
         user.setEmailOriginal(email);
         user.setEmailNormalized(normalizedEmail);
         user.setPasswordHash(passwordHash);
@@ -93,6 +103,11 @@ public class AccountService {
     public record RegistrationResult(User user, boolean existingAccount) {}
 
     private void sendVerificationEmail(User user) {
+        ProductSettings product = productConfigurationService.getSettings(user.getProductName());
+        java.time.Duration verificationTtl = product.getDuration(
+            "verificationTtl",
+            authProperties.getActionToken().getVerificationTtl()
+        );
         String token = tokenGenerator.generateToken();
         byte[] tokenHash = tokenHasher.hash(token);
 
@@ -100,31 +115,42 @@ public class AccountService {
         actionToken.setUser(user);
         actionToken.setPurpose(ActionTokenPurpose.EMAIL_VERIFICATION);
         actionToken.setTokenHash(tokenHash);
-        actionToken.setExpiresAt(clock.now().plus(authProperties.getActionToken().getVerificationTtl()));
+        actionToken.setExpiresAt(clock.now().plus(verificationTtl));
         actionToken.setCreatedAt(clock.now());
 
         actionTokenRepository.save(actionToken);
 
         // Create outbox event for email delivery
-        String verificationUrl = buildVerificationUrl(token);
+        String verificationUrl = buildVerificationUrl(token, product);
         OutboxEvent event = createEmailEvent(
-            user.getId(),
+            user,
             "EMAIL_VERIFICATION",
             Map.of(
                 "email", user.getEmailOriginal(),
                 "verificationUrl", verificationUrl,
-                "expiresIn", authProperties.getActionToken().getVerificationTtl().toString()
+                "expiresIn", verificationTtl.toString(),
+                "productName", product.productName()
             )
+        );
+        emailService.sendVerificationEmail(
+            product.productName(),
+            user.getEmailNormalized(),
+            verificationUrl,
+            verificationTtl.toString()
         );
 
         outboxEventRepository.save(event);
     }
 
     @Transactional
-    public void verifyEmail(String token) {
+    public void verifyEmail(String token, String productName) {
+        ProductSettings product = productConfigurationService.getSettings(productName);
         byte[] tokenHash = tokenHasher.hash(token);
 
-        ActionToken actionToken = actionTokenRepository.findActiveByTokenHashForUpdate(tokenHash)
+        ActionToken actionToken = actionTokenRepository.findActiveByTokenHashForUpdate(
+            tokenHash,
+            product.productName()
+        )
             .orElseThrow(() -> new UnauthorizedException("Invalid or expired verification token"));
 
         if (actionToken.getPurpose() != ActionTokenPurpose.EMAIL_VERIFICATION) {
@@ -150,10 +176,15 @@ public class AccountService {
     }
 
     @Transactional
-    public void resendVerification(String email) {
+    public void resendVerification(String email, String productName) {
+        ProductSettings product = productConfigurationService.getSettings(productName);
         String normalizedEmail = emailNormalizer.normalize(email);
         
-        Optional<User> userOpt = userRepository.findByEmailNormalizedAndStatus(normalizedEmail, UserStatus.PENDING_VERIFICATION);
+        Optional<User> userOpt = userRepository.findByProductNameAndEmailNormalizedAndStatus(
+            product.productName(),
+            normalizedEmail,
+            UserStatus.PENDING_VERIFICATION
+        );
         if (userOpt.isEmpty()) {
             // Generic response - don't reveal if account exists
             return;
@@ -168,10 +199,14 @@ public class AccountService {
     }
 
     @Transactional
-    public void initiatePasswordReset(String email) {
+    public void initiatePasswordReset(String email, String productName) {
+        ProductSettings product = productConfigurationService.getSettings(productName);
         String normalizedEmail = emailNormalizer.normalize(email);
         
-        Optional<User> userOpt = userRepository.findByEmailNormalized(normalizedEmail);
+        Optional<User> userOpt = userRepository.findByProductNameAndEmailNormalized(
+            product.productName(),
+            normalizedEmail
+        );
         if (userOpt.isEmpty() || userOpt.get().getStatus() == UserStatus.DELETED) {
             // Generic response - don't reveal if account exists
             return;
@@ -186,19 +221,24 @@ public class AccountService {
         actionToken.setUser(user);
         actionToken.setPurpose(ActionTokenPurpose.PASSWORD_RESET);
         actionToken.setTokenHash(tokenHash);
-        actionToken.setExpiresAt(clock.now().plus(authProperties.getActionToken().getPasswordResetTtl()));
+        java.time.Duration passwordResetTtl = product.getDuration(
+            "passwordResetTtl",
+            authProperties.getActionToken().getPasswordResetTtl()
+        );
+        actionToken.setExpiresAt(clock.now().plus(passwordResetTtl));
         actionToken.setCreatedAt(clock.now());
 
         actionTokenRepository.save(actionToken);
 
-        String resetUrl = buildPasswordResetUrl(token);
+        String resetUrl = buildPasswordResetUrl(token, product);
         OutboxEvent event = createEmailEvent(
-            user.getId(),
+            user,
             "PASSWORD_RESET",
             Map.of(
                 "email", user.getEmailOriginal(),
                 "resetUrl", resetUrl,
-                "expiresIn", authProperties.getActionToken().getPasswordResetTtl().toString()
+                "expiresIn", passwordResetTtl.toString(),
+                "productName", product.productName()
             )
         );
 
@@ -206,10 +246,14 @@ public class AccountService {
     }
 
     @Transactional
-    public User resetPassword(String token, String newPasswordHash) {
+    public User resetPassword(String token, String newPasswordHash, String productName) {
+        ProductSettings product = productConfigurationService.getSettings(productName);
         byte[] tokenHash = tokenHasher.hash(token);
 
-        ActionToken actionToken = actionTokenRepository.findActiveByTokenHashForUpdate(tokenHash)
+        ActionToken actionToken = actionTokenRepository.findActiveByTokenHashForUpdate(
+            tokenHash,
+            product.productName()
+        )
             .orElseThrow(() -> new UnauthorizedException("Invalid or expired reset token"));
 
         if (actionToken.getPurpose() != ActionTokenPurpose.PASSWORD_RESET) {
@@ -231,7 +275,7 @@ public class AccountService {
         // Revoke all refresh sessions (handled by session service)
         // Send security notification
         OutboxEvent event = createEmailEvent(
-            user.getId(),
+            user,
             "PASSWORD_CHANGED",
             Map.of("email", user.getEmailOriginal())
         );
@@ -245,7 +289,7 @@ public class AccountService {
     public void initiateEmailChange(User user, String newEmail) {
         String normalizedNewEmail = emailNormalizer.normalize(newEmail);
         
-        if (userRepository.existsByEmailNormalized(normalizedNewEmail)) {
+        if (userRepository.existsByProductNameAndEmailNormalized(user.getProductName(), normalizedNewEmail)) {
             throw new ConflictException("Email already in use");
         }
 
@@ -260,21 +304,27 @@ public class AccountService {
         actionToken.setUser(user);
         actionToken.setPurpose(ActionTokenPurpose.EMAIL_CHANGE);
         actionToken.setTokenHash(tokenHash);
-        actionToken.setExpiresAt(clock.now().plus(authProperties.getActionToken().getEmailChangeTtl()));
+        ProductSettings product = productConfigurationService.getSettings(user.getProductName());
+        java.time.Duration emailChangeTtl = product.getDuration(
+            "emailChangeTtl",
+            authProperties.getActionToken().getEmailChangeTtl()
+        );
+        actionToken.setExpiresAt(clock.now().plus(emailChangeTtl));
         actionToken.setCreatedAt(clock.now());
         actionToken.setMetadata("{\"newEmail\":\"" + normalizedNewEmail + "\",\"originalEmail\":\"" + user.getEmailOriginal() + "\"}");
 
         actionTokenRepository.save(actionToken);
 
-        String changeUrl = buildEmailChangeUrl(token);
+        String changeUrl = buildEmailChangeUrl(token, product);
         OutboxEvent event = createEmailEvent(
-            user.getId(),
+            user,
             "EMAIL_CHANGE",
             Map.of(
                 "currentEmail", user.getEmailOriginal(),
                 "newEmail", newEmail,
                 "changeUrl", changeUrl,
-                "expiresIn", authProperties.getActionToken().getEmailChangeTtl().toString()
+                "expiresIn", emailChangeTtl.toString(),
+                "productName", product.productName()
             )
         );
 
@@ -282,10 +332,14 @@ public class AccountService {
     }
 
     @Transactional
-    public User confirmEmailChange(String token) {
+    public User confirmEmailChange(String token, String productName) {
+        ProductSettings product = productConfigurationService.getSettings(productName);
         byte[] tokenHash = tokenHasher.hash(token);
 
-        ActionToken actionToken = actionTokenRepository.findActiveByTokenHashForUpdate(tokenHash)
+        ActionToken actionToken = actionTokenRepository.findActiveByTokenHashForUpdate(
+            tokenHash,
+            product.productName()
+        )
             .orElseThrow(() -> new UnauthorizedException("Invalid or expired email change token"));
 
         if (actionToken.getPurpose() != ActionTokenPurpose.EMAIL_CHANGE) {
@@ -301,7 +355,7 @@ public class AccountService {
         }
 
         // Check if email is still available
-        if (userRepository.existsByEmailNormalized(newEmail)) {
+        if (userRepository.existsByProductNameAndEmailNormalized(user.getProductName(), newEmail)) {
             throw new ConflictException("Email already in use");
         }
 
@@ -319,7 +373,7 @@ public class AccountService {
 
         // Send notification to old email
         OutboxEvent event = createEmailEvent(
-            user.getId(),
+            user,
             "EMAIL_CHANGED",
             Map.of("newEmail", newEmail)
         );
@@ -345,33 +399,35 @@ public class AccountService {
         }
     }
 
-    private String buildVerificationUrl(String token) {
-        return notificationProperties.getEmail().getBaseUrl() + 
-               notificationProperties.getEmail().getVerificationPath() + 
-               "?token=" + token;
+    private String buildVerificationUrl(String token, ProductSettings product) {
+        return product.getString("frontendBaseUrl", notificationProperties.getEmail().getBaseUrl())
+            + product.getString("verificationPath", notificationProperties.getEmail().getVerificationPath())
+            + "?token=" + token;
     }
 
-    private String buildPasswordResetUrl(String token) {
-        return notificationProperties.getEmail().getBaseUrl() + 
-               notificationProperties.getEmail().getPasswordResetPath() + 
-               "?token=" + token;
+    private String buildPasswordResetUrl(String token, ProductSettings product) {
+        return product.getString("frontendBaseUrl", notificationProperties.getEmail().getBaseUrl())
+            + product.getString("passwordResetPath", notificationProperties.getEmail().getPasswordResetPath())
+            + "?token=" + token;
     }
 
-    private String buildEmailChangeUrl(String token) {
-        return notificationProperties.getEmail().getBaseUrl() + 
-               notificationProperties.getEmail().getEmailChangePath() + 
-               "?token=" + token;
+    private String buildEmailChangeUrl(String token, ProductSettings product) {
+        return product.getString("frontendBaseUrl", notificationProperties.getEmail().getBaseUrl())
+            + product.getString("emailChangePath", notificationProperties.getEmail().getEmailChangePath())
+            + "?token=" + token;
     }
 
-    private OutboxEvent createEmailEvent(UUID userId, String type, Map<String, Object> payload) {
+    private OutboxEvent createEmailEvent(User user, String type, Map<String, Object> payload) {
         OutboxEvent event = new OutboxEvent();
-        event.setAggregateId(userId);
+        event.setAggregateId(user.getId());
         event.setType(type);
         event.setSchemaVersion(1);
         event.setAvailableAt(clock.now());
         // In production, payload would be encrypted
         try {
-            event.setPayload(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payload));
+            Map<String, Object> eventPayload = new HashMap<>(payload);
+            eventPayload.put("productName", user.getProductName());
+            event.setPayload(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(eventPayload));
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             throw new IllegalStateException("Failed to serialize payload", e);
         }

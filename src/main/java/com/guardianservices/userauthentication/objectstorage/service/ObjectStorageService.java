@@ -1,7 +1,6 @@
 package com.guardianservices.userauthentication.objectstorage.service;
 
 import com.guardianservices.userauthentication.account.User;
-import com.guardianservices.userauthentication.common.exception.ForbiddenException;
 import com.guardianservices.userauthentication.common.exception.NotFoundException;
 import com.guardianservices.userauthentication.common.exception.ValidationException;
 import com.guardianservices.userauthentication.common.util.Clock;
@@ -11,6 +10,8 @@ import com.guardianservices.userauthentication.objectstorage.ObjectStatus;
 import com.guardianservices.userauthentication.objectstorage.StoredObject;
 import com.guardianservices.userauthentication.objectstorage.repository.StoredObjectRepository;
 import com.guardianservices.userauthentication.platform.config.StorageProperties;
+import com.guardianservices.userauthentication.product.ProductConfigurationService;
+import com.guardianservices.userauthentication.product.ProductConfigurationService.ProductSettings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -39,22 +40,31 @@ public class ObjectStorageService {
     private final SecureTokenGenerator tokenGenerator;
     private final Clock clock;
     private final StorageProperties storageProperties;
+    private final ProductConfigurationService productConfigurationService;
 
     @Transactional
     public UploadIntent createUploadIntent(User user, ObjectPurpose purpose, String contentType, long size) {
+        ProductSettings product = productConfigurationService.getSettings(user.getProductName());
+        int maxActiveUploads = product.getBoundedInt("maxActiveUploads", 10, 1, 1_000);
         // Validate quota
         long activeUploads = objectRepository.countActiveUploadsByUser(user);
-        if (activeUploads >= 10) { // Configurable limit
-            throw new ValidationException("Upload quota exceeded", Map.of("quota", "Max 10 active uploads"));
+        if (activeUploads >= maxActiveUploads) {
+            throw new ValidationException(
+                "Upload quota exceeded",
+                Map.of("quota", "Max " + maxActiveUploads + " active uploads")
+            );
         }
 
         // Validate size and type
-        validateUpload(purpose, contentType, size);
+        validateUpload(product, purpose, contentType, size);
 
         // Generate server-side key
-        String key = generateObjectKey(user.getId(), purpose);
+        String key = generateObjectKey(product.productName(), user.getId(), purpose);
         String versionId = UUID.randomUUID().toString();
-        OffsetDateTime expiresAt = clock.now().plus(storageProperties.getQuarantine().getObjectTtl());
+        OffsetDateTime expiresAt = clock.now().plus(product.getDuration(
+            "objectTtl",
+            storageProperties.getQuarantine().getObjectTtl()
+        ));
 
         // Create object record
         StoredObject object = new StoredObject();
@@ -72,7 +82,12 @@ public class ObjectStorageService {
         object = objectRepository.save(object);
 
         // Generate presigned POST
-        PresignedPutObjectRequest presignedRequest = createPresignedPost(object, contentType, size);
+        PresignedPutObjectRequest presignedRequest = createPresignedPost(
+            object,
+            contentType,
+            size,
+            product.getDuration("presignedPostTtl", storageProperties.getUpload().getPresignedPostTtl())
+        );
 
         Map<?, ?> signedHeaders = presignedRequest.signedHeaders();
         Map<?, ?> headers = presignedRequest.httpRequest().headers();
@@ -87,20 +102,35 @@ public class ObjectStorageService {
         );
     }
 
-    private void validateUpload(ObjectPurpose purpose, String contentType, long size) {
+    private void validateUpload(
+        ProductSettings product,
+        ObjectPurpose purpose,
+        String contentType,
+        long size
+    ) {
         StorageProperties.Upload uploadProps = storageProperties.getUpload();
         
-        long maxSize = purpose == ObjectPurpose.PROFILE_IMAGE 
-            ? uploadProps.getProfileImageMaxSizeBytes() 
-            : uploadProps.getGeneralUploadMaxSizeBytes();
+        long maxSize = purpose == ObjectPurpose.PROFILE_IMAGE
+            ? product.getBoundedLong(
+                "profileImageMaxSizeBytes",
+                uploadProps.getProfileImageMaxSizeBytes(),
+                1,
+                100L * 1024 * 1024
+            )
+            : product.getBoundedLong(
+                "generalUploadMaxSizeBytes",
+                uploadProps.getGeneralUploadMaxSizeBytes(),
+                1,
+                1024L * 1024 * 1024
+            );
 
         if (size > maxSize) {
             throw new ValidationException("File size exceeds limit", Map.of("size", "Max " + maxSize + " bytes"));
         }
 
         String[] allowedTypes = purpose == ObjectPurpose.PROFILE_IMAGE
-            ? uploadProps.getAllowedProfileImageTypes()
-            : uploadProps.getAllowedGeneralUploadTypes();
+            ? product.getStringArray("allowedProfileImageTypes", uploadProps.getAllowedProfileImageTypes())
+            : product.getStringArray("allowedGeneralUploadTypes", uploadProps.getAllowedGeneralUploadTypes());
 
         if (allowedTypes != null && allowedTypes.length > 0) {
             boolean allowed = false;
@@ -125,12 +155,17 @@ public class ObjectStorageService {
         }
     }
 
-    private String generateObjectKey(UUID userId, ObjectPurpose purpose) {
+    private String generateObjectKey(String productName, UUID userId, ObjectPurpose purpose) {
         String prefix = purpose == ObjectPurpose.PROFILE_IMAGE ? "profile/" : "uploads/";
-        return prefix + userId + "/" + tokenGenerator.generateToken(16);
+        return prefix + productName + "/" + userId + "/" + tokenGenerator.generateToken(16);
     }
 
-    private PresignedPutObjectRequest createPresignedPost(StoredObject object, String contentType, long size) {
+    private PresignedPutObjectRequest createPresignedPost(
+        StoredObject object,
+        String contentType,
+        long size,
+        java.time.Duration presignedPostTtl
+    ) {
         PutObjectRequest putRequest = PutObjectRequest.builder()
             .bucket(storageProperties.getS3().getQuarantineBucket())
             .key(object.getQuarantineKey())
@@ -139,7 +174,7 @@ public class ObjectStorageService {
             .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-            .signatureDuration(storageProperties.getUpload().getPresignedPostTtl())
+            .signatureDuration(presignedPostTtl)
             .putObjectRequest(putRequest)
             .build();
 
@@ -147,8 +182,8 @@ public class ObjectStorageService {
     }
 
     @Transactional
-    public void completeUpload(UUID objectId, String versionId) {
-        StoredObject object = objectRepository.findByIdForUpdate(objectId)
+    public void completeUpload(User user, UUID objectId, String versionId) {
+        StoredObject object = objectRepository.findByOwnerAndIdForUpdate(user, objectId)
             .orElseThrow(() -> new NotFoundException("Object not found"));
 
         if (!object.getQuarantineVersionId().equals(versionId)) {
@@ -173,6 +208,12 @@ public class ObjectStorageService {
     }
 
     @Transactional(readOnly = true)
+    public StoredObject getUploadStatus(User user, UUID objectId) {
+        return objectRepository.findByOwnerUserAndId(user, objectId)
+            .orElseThrow(() -> new NotFoundException("Object not found"));
+    }
+
+    @Transactional(readOnly = true)
     public DownloadUrl generateDownloadUrl(User user, UUID objectId) {
         StoredObject object = objectRepository.findByOwnerAndStatusAndId(user, ObjectStatus.READY, objectId)
             .orElseThrow(() -> new NotFoundException("Object not found"));
@@ -183,7 +224,10 @@ public class ObjectStorageService {
 
         software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest presignRequest = 
             software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest.builder()
-                .signatureDuration(storageProperties.getUpload().getDownloadUrlTtl())
+                .signatureDuration(productConfigurationService.getSettings(user.getProductName()).getDuration(
+                    "downloadUrlTtl",
+                    storageProperties.getUpload().getDownloadUrlTtl()
+                ))
                 .getObjectRequest(GetObjectRequest.builder()
                     .bucket(storageProperties.getS3().getCleanBucket())
                     .key(object.getCleanKey())
@@ -200,12 +244,8 @@ public class ObjectStorageService {
 
     @Transactional
     public void deleteObject(User user, UUID objectId) {
-        StoredObject object = objectRepository.findByIdForUpdate(objectId)
+        StoredObject object = objectRepository.findByOwnerAndIdForUpdate(user, objectId)
             .orElseThrow(() -> new NotFoundException("Object not found"));
-
-        if (!object.getOwnerUser().getId().equals(user.getId())) {
-            throw new ForbiddenException("Object not owned by user");
-        }
 
         // Mark as DELETING
         object.setStatus(ObjectStatus.DELETING);

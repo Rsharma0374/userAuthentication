@@ -4,6 +4,8 @@ import com.guardianservices.userauthentication.account.service.AccountService;
 import com.guardianservices.userauthentication.account.UserStatus;
 import com.guardianservices.userauthentication.common.exception.ConflictException;
 import com.guardianservices.userauthentication.common.exception.ValidationException;
+import com.guardianservices.userauthentication.product.ProductScopeValidator;
+import com.guardianservices.userauthentication.product.CurrentUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
@@ -14,7 +16,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.guardianservices.userauthentication.product.ProductPasswordEncoder;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,14 +35,20 @@ import lombok.extern.slf4j.Slf4j;
 public class AuthController {
 
     private final AccountService accountService;
-    private final PasswordEncoder passwordEncoder;
+    private final ProductPasswordEncoder passwordEncoder;
+    private final ProductScopeValidator productScopeValidator;
+    private final CurrentUserService currentUserService;
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest request) {
         try {
-            String passwordHash = passwordEncoder.encode(request.getPassword());
+            String passwordHash = passwordEncoder.encode(request.getProductName(), request.getPassword());
             AccountService.RegistrationResult registration =
-                accountService.registerWithOutcome(request.getEmail(), passwordHash);
+                accountService.registerWithOutcome(
+                    request.getProductName(),
+                    request.getEmail(),
+                    passwordHash
+                );
             if (registration.existingAccount()) {
                 if (registration.user().getStatus() == UserStatus.PENDING_VERIFICATION) {
                     log.info("Registration retried for account pending email verification");
@@ -116,21 +124,21 @@ public class AuthController {
 
     @PostMapping("/email/verify")
     public ResponseEntity<Map<String, Object>> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
-        accountService.verifyEmail(request.getToken());
+        accountService.verifyEmail(request.getToken(), request.getProductName());
         log.info("Email verification completed");
         return ResponseEntity.ok(Map.of("message", "Email verified successfully"));
     }
 
     @PostMapping("/email/resend")
     public ResponseEntity<Map<String, Object>> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
-        accountService.resendVerification(request.getEmail());
+        accountService.resendVerification(request.getEmail(), request.getProductName());
         log.info("Verification email resend request processed");
         return ResponseEntity.accepted().body(Map.of("message", "If the account exists, a verification email has been sent"));
     }
 
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, Object>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        accountService.initiatePasswordReset(request.getEmail());
+        accountService.initiatePasswordReset(request.getEmail(), request.getProductName());
         log.info("Password reset request processed");
         return ResponseEntity.accepted().body(Map.of("message", "If the account exists, a password reset email has been sent"));
     }
@@ -138,8 +146,8 @@ public class AuthController {
     @PostMapping("/reset-password")
     public ResponseEntity<Map<String, Object>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         // Client sends raw password, we SHA-256 hash it
-        String passwordHash = passwordEncoder.encode(request.getPassword());
-        accountService.resetPassword(request.getToken(), passwordHash);
+        String passwordHash = passwordEncoder.encode(request.getProductName(), request.getPassword());
+        accountService.resetPassword(request.getToken(), passwordHash, request.getProductName());
         log.info("Password reset completed");
         return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
     }
@@ -147,6 +155,8 @@ public class AuthController {
     @PostMapping("/change-password")
     public ResponseEntity<Map<String, Object>> changePassword(@Valid @RequestBody ChangePasswordRequest request,
                                                                HttpServletRequest httpRequest) {
+        productScopeValidator.assertMatchesAuthenticatedProduct(request.getProductName());
+        currentUserService.getCurrentUser();
         // Get user from security context
         // This would be implemented with Spring Security
         log.info("Password change request accepted");
@@ -156,7 +166,8 @@ public class AuthController {
     @PostMapping("/email-change")
     public ResponseEntity<Map<String, Object>> initiateEmailChange(@Valid @RequestBody EmailChangeRequest request,
                                                                     HttpServletRequest httpRequest) {
-        // Get user from security context
+        productScopeValidator.assertMatchesAuthenticatedProduct(request.getProductName());
+        accountService.initiateEmailChange(currentUserService.getCurrentUser(), request.getNewEmail());
         log.info("Email change request accepted");
         return ResponseEntity.accepted().body(Map.of("message", "Email change initiated"));
     }

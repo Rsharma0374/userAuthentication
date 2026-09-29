@@ -13,6 +13,7 @@ import com.guardianservices.userauthentication.session.Session;
 import com.guardianservices.userauthentication.session.SessionRevocationReason;
 import com.guardianservices.userauthentication.session.repository.RefreshTokenRepository;
 import com.guardianservices.userauthentication.session.repository.SessionRepository;
+import com.guardianservices.userauthentication.product.ProductConfigurationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
@@ -33,13 +34,21 @@ public class SessionService {
     private final TokenHasher tokenHasher;
     private final Clock clock;
     private final com.guardianservices.userauthentication.platform.config.AuthProperties authProperties;
+    private final ProductConfigurationService productConfigurationService;
 
     @Transactional
     public SessionCreationResult createSession(User user, String deviceId, String deviceName,
                                                java.net.InetAddress ipAddress, String userAgent) {
+        var product = productConfigurationService.getSettings(user.getProductName());
         OffsetDateTime now = clock.now();
-        OffsetDateTime idleExpiresAt = now.plus(authProperties.getRefresh().getIdleTtl());
-        OffsetDateTime absoluteExpiresAt = now.plus(authProperties.getRefresh().getAbsoluteTtl());
+        OffsetDateTime idleExpiresAt = now.plus(product.getDuration(
+            "refreshIdleTtl",
+            authProperties.getRefresh().getIdleTtl()
+        ));
+        OffsetDateTime absoluteExpiresAt = now.plus(product.getDuration(
+            "refreshAbsoluteTtl",
+            authProperties.getRefresh().getAbsoluteTtl()
+        ));
 
         Session session = new Session();
         session.setUser(user);
@@ -71,13 +80,17 @@ public class SessionService {
     }
 
     @Transactional
-    public RefreshTokenResult rotateRefreshToken(String presentedToken, String deviceId, 
+    public RefreshTokenResult rotateRefreshToken(String productName, String presentedToken, String deviceId,
                                                   java.net.InetAddress ipAddress, String userAgent) {
+        var product = productConfigurationService.getSettings(productName);
         byte[] tokenHash = tokenHasher.hash(presentedToken);
         OffsetDateTime now = clock.now();
 
         // Find and lock the refresh token
-        RefreshToken refreshToken = refreshTokenRepository.findActiveByTokenHashWithActiveSessionForUpdate(tokenHash)
+        RefreshToken refreshToken = refreshTokenRepository.findActiveByTokenHashWithActiveSessionForUpdate(
+            tokenHash,
+            product.productName()
+        )
             .orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
 
         Session session = refreshToken.getSession();
@@ -121,7 +134,10 @@ public class SessionService {
 
         // Update session last used time
         session.setLastUsedAt(now);
-        session.setIdleExpiresAt(now.plus(authProperties.getRefresh().getIdleTtl()));
+        session.setIdleExpiresAt(now.plus(product.getDuration(
+            "refreshIdleTtl",
+            authProperties.getRefresh().getIdleTtl()
+        )));
         sessionRepository.save(session);
 
         log.info("Rotated refresh token for session {}", session.getId());
@@ -147,9 +163,10 @@ public class SessionService {
     }
 
     @Transactional
-    public void revokeSession(UUID sessionId, SessionRevocationReason reason) {
+    public void revokeSession(String productName, UUID sessionId, SessionRevocationReason reason) {
+        var product = productConfigurationService.getSettings(productName);
         OffsetDateTime now = clock.now();
-        int updated = sessionRepository.revokeSession(sessionId, now, reason);
+        int updated = sessionRepository.revokeSession(sessionId, product.productName(), now, reason);
         if (updated == 0) {
             throw new NotFoundException("Session not found or already revoked");
         }
@@ -191,11 +208,16 @@ public class SessionService {
     }
 
     @Transactional
-    public void updateSessionActivity(UUID sessionId) {
-        Session session = sessionRepository.findById(sessionId).orElse(null);
+    public void updateSessionActivity(String productName, UUID sessionId) {
+        var product = productConfigurationService.getSettings(productName);
+        Session session = sessionRepository.findByIdAndUserProductName(sessionId, product.productName())
+            .orElse(null);
         if (session != null && session.getRevokedAt() == null) {
             session.setLastUsedAt(clock.now());
-            session.setIdleExpiresAt(clock.now().plus(authProperties.getRefresh().getIdleTtl()));
+            session.setIdleExpiresAt(clock.now().plus(product.getDuration(
+                "refreshIdleTtl",
+                authProperties.getRefresh().getIdleTtl()
+            )));
             sessionRepository.save(session);
         }
     }

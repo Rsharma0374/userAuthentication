@@ -3,7 +3,9 @@ package com.guardianservices.userauthentication.authentication.service;
 import com.guardianservices.userauthentication.account.User;
 import com.guardianservices.userauthentication.account.repository.UserRoleRepository;
 import com.guardianservices.userauthentication.common.exception.UnauthorizedException;
+import com.guardianservices.userauthentication.common.exception.ValidationException;
 import com.guardianservices.userauthentication.platform.config.AuthProperties;
+import com.guardianservices.userauthentication.product.ProductConfigurationService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
@@ -33,6 +35,7 @@ public class JwtService {
 
     private final AuthProperties authProperties;
     private final UserRoleRepository userRoleRepository;
+    private final ProductConfigurationService productConfigurationService;
 
     private KeyPair keyPair;
     private String keyId;
@@ -54,18 +57,23 @@ public class JwtService {
 
     public String createAccessToken(User user, String sessionId, List<String> scopes) {
         OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime exp = now.plus(authProperties.getJwt().getAccessTokenTtl());
+        var product = productConfigurationService.getSettings(user.getProductName());
+        OffsetDateTime exp = now.plus(product.getDuration(
+            "accessTokenTtl",
+            authProperties.getJwt().getAccessTokenTtl()
+        ));
 
         String jti = UUID.randomUUID().toString();
 
         return Jwts.builder()
             .issuer(authProperties.getJwt().getIssuer())
             .subject(user.getId().toString())
-            .audience().add(authProperties.getJwt().getAudience()).and()
+            .audience().add(product.getString("jwtAudience", authProperties.getJwt().getAudience())).and()
             .issuedAt(Date.from(now.toInstant()))
             .expiration(Date.from(exp.toInstant()))
             .id(jti)
             .claim("sid", sessionId)
+            .claim("productName", product.productName())
             .claim("scopes", scopes)
             .claim("roles", getUserRoles(user))
             .signWith(getPrivateKey())
@@ -77,7 +85,6 @@ public class JwtService {
             Jws<Claims> jws = Jwts.parser()
                 .verifyWith((RSAPublicKey) getPublicKey())
                 .requireIssuer(authProperties.getJwt().getIssuer())
-                .requireAudience(authProperties.getJwt().getAudience())
                 .build()
                 .parseSignedClaims(token);
 
@@ -87,18 +94,31 @@ public class JwtService {
             String subject = claims.getSubject();
             String jti = claims.getId();
             String sessionId = claims.get("sid", String.class);
+            String productName = claims.get("productName", String.class);
             List<String> scopes = claims.get("scopes", List.class);
             List<String> roles = claims.get("roles", List.class);
+            if (productName == null || productName.isBlank()) {
+                return new JwtValidationResult(false, "Missing product claim");
+            }
+            String audience = productConfigurationService.getSettings(productName)
+                .getString("jwtAudience", authProperties.getJwt().getAudience());
+            if (!claims.getAudience().contains(audience)) {
+                return new JwtValidationResult(false, "Invalid token audience");
+            }
 
             return new JwtValidationResult(
                 true,
                 subject,
                 jti,
                 sessionId,
+                productName,
                 scopes != null ? scopes : List.of(),
                 roles != null ? roles : List.of(),
                 claims.getExpiration().toInstant()
             );
+        } catch (ValidationException e) {
+            log.debug("JWT product validation failed: {}", e.getMessage());
+            return new JwtValidationResult(false, e.getMessage());
         } catch (JwtException e) {
             log.debug("JWT validation failed: {}", e.getMessage());
             return new JwtValidationResult(false, e.getMessage());
@@ -153,17 +173,20 @@ public class JwtService {
         private final String subject;
         private final String jti;
         private final String sessionId;
+        private final String productName;
         private final List<String> scopes;
         private final List<String> roles;
         private final Instant expiry;
         private final String error;
 
         public JwtValidationResult(boolean valid, String subject, String jti, String sessionId,
+                                   String productName,
                                    List<String> scopes, List<String> roles, Instant expiry) {
             this.valid = valid;
             this.subject = subject;
             this.jti = jti;
             this.sessionId = sessionId;
+            this.productName = productName;
             this.scopes = scopes;
             this.roles = roles;
             this.expiry = expiry;
@@ -175,6 +198,7 @@ public class JwtService {
             this.subject = null;
             this.jti = null;
             this.sessionId = null;
+            this.productName = null;
             this.scopes = null;
             this.roles = null;
             this.expiry = null;
@@ -195,6 +219,10 @@ public class JwtService {
 
         public String getSessionId() {
             return sessionId;
+        }
+
+        public String getProductName() {
+            return productName;
         }
 
         public List<String> getScopes() {

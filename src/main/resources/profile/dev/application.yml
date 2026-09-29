@@ -41,18 +41,6 @@ spring:
         max-idle: 10
         min-idle: 2
 
-  mail:
-    host: localhost
-    port: 1025
-    username: ""
-    password: ""
-    properties:
-      mail:
-        smtp:
-          auth: false
-          starttls:
-            enable: false
-
 # Server Configuration
 server:
   port: 8080

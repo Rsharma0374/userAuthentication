@@ -12,12 +12,20 @@ import java.util.UUID;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
 
-    Optional<User> findByEmailNormalized(String emailNormalized);
+    Optional<User> findByProductNameAndEmailNormalized(String productName, String emailNormalized);
 
-    Optional<User> findByEmailNormalizedAndStatus(String emailNormalized, UserStatus status);
+    Optional<User> findByProductNameAndEmailNormalizedAndStatus(
+        String productName,
+        String emailNormalized,
+        UserStatus status
+    );
 
-    boolean existsByEmailNormalized(String emailNormalized);
+    boolean existsByProductNameAndEmailNormalized(String productName, String emailNormalized);
 
-    @Query("SELECT u FROM User u WHERE u.id = :id AND u.status = :status")
-    Optional<User> findActiveById(@Param("id") UUID id, @Param("status") UserStatus status);
+    @Query("SELECT u FROM User u WHERE u.id = :id AND u.productName = :productName AND u.status = :status")
+    Optional<User> findActiveById(
+        @Param("id") UUID id,
+        @Param("productName") String productName,
+        @Param("status") UserStatus status
+    );
 }

@@ -2,10 +2,11 @@ package com.guardianservices.userauthentication.session.controller;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import com.guardianservices.userauthentication.common.ProductAwareRequest;
 import lombok.Data;
 
 @Data
-public class RefreshRequest {
+public class RefreshRequest extends ProductAwareRequest {
 
     @NotBlank
     @Size(min = 32, max = 128)

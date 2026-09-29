@@ -48,7 +48,7 @@ class AccountServiceIntegrationTest extends BaseIntegrationTest {
         String password = "SecurePass123!";
         String passwordHash = passwordEncoder.encode(password);
 
-        User user = accountService.register(email, passwordHash);
+        User user = accountService.register("legacy", email, passwordHash);
 
         assertThat(user).isNotNull();
         assertThat(user.getEmailOriginal()).isEqualTo(email);
@@ -65,8 +65,8 @@ class AccountServiceIntegrationTest extends BaseIntegrationTest {
         String password = "SecurePass123!";
         String passwordHash = passwordEncoder.encode(password);
 
-        User firstUser = accountService.register(email, passwordHash);
-        User secondUser = accountService.register(email, passwordHash);
+        User firstUser = accountService.register("legacy", email, passwordHash);
+        User secondUser = accountService.register("legacy", email, passwordHash);
 
         assertThat(secondUser.getId()).isEqualTo(firstUser.getId());
     }
@@ -78,7 +78,7 @@ class AccountServiceIntegrationTest extends BaseIntegrationTest {
         String password = "SecurePass123!";
         String passwordHash = passwordEncoder.encode(password);
 
-        User user = accountService.register(email, passwordHash);
+        User user = accountService.register("legacy", email, passwordHash);
         
         // Find the verification token
         var tokens = actionTokenRepository.findByUserAndPurposeAndConsumedAtIsNull(user, ActionTokenPurpose.EMAIL_VERIFICATION);
@@ -86,7 +86,7 @@ class AccountServiceIntegrationTest extends BaseIntegrationTest {
         
         String token = extractTokenFromOutbox(tokens.get(0));
         
-        accountService.verifyEmail(token);
+        accountService.verifyEmail(token, "legacy");
 
         User verifiedUser = userRepository.findById(user.getId()).orElseThrow();
         assertThat(verifiedUser.getStatus()).isEqualTo(UserStatus.ACTIVE);
@@ -96,7 +96,7 @@ class AccountServiceIntegrationTest extends BaseIntegrationTest {
     @Test
     @Transactional
     void verifyEmail_withInvalidToken_throwsException() {
-        assertThatThrownBy(() -> accountService.verifyEmail("invalid-token"))
+        assertThatThrownBy(() -> accountService.verifyEmail("invalid-token", "legacy"))
             .isInstanceOf(UnauthorizedException.class);
     }
 
@@ -107,10 +107,10 @@ class AccountServiceIntegrationTest extends BaseIntegrationTest {
         String password = "SecurePass123!";
         String passwordHash = passwordEncoder.encode(password);
 
-        User user = accountService.register(email, passwordHash);
+        User user = accountService.register("legacy", email, passwordHash);
         long initialTokenCount = actionTokenRepository.count();
 
-        accountService.resendVerification(email);
+        accountService.resendVerification(email, "legacy");
 
         long newTokenCount = actionTokenRepository.count();
         assertThat(newTokenCount).isGreaterThan(initialTokenCount);

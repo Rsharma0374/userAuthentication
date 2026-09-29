@@ -18,6 +18,7 @@ import com.guardianservices.userauthentication.common.util.Clock;
 import com.guardianservices.userauthentication.common.util.SecureTokenGenerator;
 import com.guardianservices.userauthentication.common.util.TokenHasher;
 import com.guardianservices.userauthentication.platform.config.AuthProperties;
+import com.guardianservices.userauthentication.product.ProductConfigurationService;
 import com.guardianservices.userauthentication.session.Session;
 import com.guardianservices.userauthentication.session.SessionRevocationReason;
 import com.guardianservices.userauthentication.session.service.SessionService;
@@ -51,16 +52,21 @@ public class AuthenticationService {
     private final TokenHasher tokenHasher;
     private final Clock clock;
     private final AuthProperties authProperties;
+    private final ProductConfigurationService productConfigurationService;
 
     private final GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator();
 
     @Transactional
-    public AuthenticationResult authenticate(String email, String password, 
+    public AuthenticationResult authenticate(String productName, String email, String password,
                                              String deviceId, String deviceName,
                                              java.net.InetAddress ipAddress, String userAgent) {
+        String normalizedProductName = productConfigurationService.getSettings(productName).productName();
         String normalizedEmail = email.toLowerCase(); // Use the same normalizer
         
-        Optional<User> userOpt = userRepository.findByEmailNormalized(normalizedEmail);
+        Optional<User> userOpt = userRepository.findByProductNameAndEmailNormalized(
+            normalizedProductName,
+            normalizedEmail
+        );
         User user = null;
         if (userOpt.isPresent() && userOpt.get().getStatus() != UserStatus.DELETED) {
             user = userOpt.get();
@@ -109,11 +115,15 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public AuthenticationResult verifyMfa(String challengeId, String code, String deviceId, 
+    public AuthenticationResult verifyMfa(String productName, String challengeId, String code, String deviceId,
                                            String deviceName, java.net.InetAddress ipAddress, String userAgent) {
+        var product = productConfigurationService.getSettings(productName);
         byte[] challengeHash = tokenHasher.hash(challengeId);
 
-        AuthChallenge challenge = authChallengeRepository.findActiveByChallengeHashForUpdate(challengeHash)
+        AuthChallenge challenge = authChallengeRepository.findActiveByChallengeHashForUpdate(
+            challengeHash,
+            product.productName()
+        )
             .orElseThrow(() -> new UnauthorizedException("Invalid or expired MFA challenge"));
 
         if (challenge.getPurpose() != AuthChallengePurpose.MFA_VERIFICATION) {
@@ -142,7 +152,12 @@ public class AuthenticationService {
         if (!valid) {
             challenge.setAttemptCount(challenge.getAttemptCount() + 1);
             log.warn("MFA verification failed for user {}", user.getId());
-            if (challenge.getAttemptCount() >= authProperties.getMfa().getMaxTotpAttempts()) {
+            if (challenge.getAttemptCount() >= product.getBoundedInt(
+                "maxTotpAttempts",
+                authProperties.getMfa().getMaxTotpAttempts(),
+                1,
+                20
+            )) {
                 challenge.setCompletedAt(clock.now());
                 authChallengeRepository.save(challenge);
                 throw new UnauthorizedException("Too many failed attempts");

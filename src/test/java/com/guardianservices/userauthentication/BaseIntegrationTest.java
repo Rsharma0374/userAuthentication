@@ -8,7 +8,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -39,12 +38,6 @@ public abstract class BaseIntegrationTest {
     @Container
     static LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.0"))
         .withServices(LocalStackContainer.Service.S3, LocalStackContainer.Service.SQS, LocalStackContainer.Service.KMS)
-        .withReuse(true);
-
-    @Container
-    static GenericContainer<?> mailhog = new GenericContainer<>(DockerImageName.parse("mailhog/mailhog:v1.0.1"))
-        .withExposedPorts(1025, 8025)
-        .waitingFor(Wait.forListeningPort())
         .withReuse(true);
 
     static S3Client s3Client;
@@ -109,7 +102,5 @@ public abstract class BaseIntegrationTest {
         registry.add("app.storage.s3.quarantine-bucket", () -> "test-quarantine");
         registry.add("app.storage.s3.clean-bucket", () -> "test-clean");
         
-        registry.add("spring.mail.host", mailhog::getHost);
-        registry.add("spring.mail.port", mailhog::getFirstMappedPort);
     }
 }

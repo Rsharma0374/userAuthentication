@@ -3,6 +3,8 @@ package com.guardianservices.userauthentication.authentication.controller;
 import com.guardianservices.userauthentication.authentication.service.AuthenticationService;
 import com.guardianservices.userauthentication.authentication.service.MfaService;
 import com.guardianservices.userauthentication.common.exception.UnauthorizedException;
+import com.guardianservices.userauthentication.product.ProductScopeValidator;
+import com.guardianservices.userauthentication.product.CurrentUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -27,12 +29,15 @@ public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
     private final MfaService mfaService;
+    private final ProductScopeValidator productScopeValidator;
+    private final CurrentUserService currentUserService;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request,
                                     HttpServletRequest httpRequest,
                                     HttpServletResponse httpResponse) {
         AuthenticationService.AuthenticationResult result = authenticationService.authenticate(
+            request.getProductName(),
             request.getEmail(),
             request.getPassword(),
             request.getDeviceId(),
@@ -67,6 +72,7 @@ public class AuthenticationController {
                                         HttpServletRequest httpRequest,
                                         HttpServletResponse httpResponse) {
         AuthenticationService.AuthenticationResult result = authenticationService.verifyMfa(
+            request.getProductName(),
             request.getChallengeId(),
             request.getCode(),
             request.getDeviceId(),
@@ -107,6 +113,7 @@ public class AuthenticationController {
     @PostMapping("/mfa/confirm")
     public ResponseEntity<?> confirmMfaEnrollment(@Valid @RequestBody MfaConfirmRequest request,
                                                    HttpServletRequest httpRequest) {
+        productScopeValidator.assertMatchesAuthenticatedProduct(request.getProductName());
         mfaService.confirmMfaEnrollment(getCurrentUser(), request.getCode());
         log.info("MFA enrollment confirmation completed");
         return ResponseEntity.ok(Map.of("message", "MFA enrolled successfully"));
@@ -150,7 +157,6 @@ public class AuthenticationController {
     }
 
     private com.guardianservices.userauthentication.account.User getCurrentUser() {
-        // In practice, get from SecurityContext
-        return null;
+        return currentUserService.getCurrentUser();
     }
 }

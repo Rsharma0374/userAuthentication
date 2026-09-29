@@ -34,6 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Authentication authentication = new JwtAuthenticationToken(
                     result.getSubject(),
                     result.getSessionId(),
+                    result.getProductName(),
                     result.getScopes(),
                     result.getRoles()
                 );
