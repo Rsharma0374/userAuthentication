@@ -74,6 +74,7 @@ Every request body includes a required `productName` selected from the active pr
 |---|---|
 | POST /v1/auth/register | Public, rate-limited registration; generic 202 |
 | POST /v1/auth/email/verify | Consume verification token |
+| GET /v1/auth/email/verify/{productName}/{token} | Consume a verification token from an email link |
 | POST /v1/auth/email/resend | Public, generic response, heavily rate-limited |
 | POST /v1/auth/login | Password authentication; session or restricted MFA challenge |
 | POST /v1/auth/mfa/verify | Complete bounded pending authentication challenge |

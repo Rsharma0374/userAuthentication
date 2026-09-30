@@ -35,7 +35,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/v1/auth/register").permitAll()
-                .requestMatchers("/v1/auth/email/verify").permitAll()
+                .requestMatchers("/v1/auth/email/verify", "/v1/auth/email/verify/**").permitAll()
                 .requestMatchers("/v1/auth/email/resend").permitAll()
                 .requestMatchers("/v1/auth/login").permitAll()
                 .requestMatchers("/v1/auth/mfa/verify").permitAll()

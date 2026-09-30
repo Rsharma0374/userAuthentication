@@ -402,7 +402,8 @@ public class AccountService {
     private String buildVerificationUrl(String token, ProductSettings product) {
         return product.getString("frontendBaseUrl", notificationProperties.getEmail().getBaseUrl())
             + product.getString("verificationPath", notificationProperties.getEmail().getVerificationPath())
-            + "?token=" + token;
+            + "/" + product.productName()
+            + "/" + token;
     }
 
     private String buildPasswordResetUrl(String token, ProductSettings product) {

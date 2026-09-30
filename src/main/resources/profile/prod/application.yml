@@ -86,7 +86,7 @@ logging:
 app:
   auth:
     jwt:
-      issuer: ${JWT_ISSUER:https://identity.example.com}
+      issuer: ${JWT_ISSUER:https://kon.guardianservices.in}
       audience: ${JWT_AUDIENCE:identity-service}
       access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:10m}
       signing-key-alias: ${JWT_SIGNING_KEY_ALIAS:identity-signing-key}
@@ -148,8 +148,8 @@ app:
     email:
       from-address: ${MAIL_FROM_ADDRESS}
       from-name: ${MAIL_FROM_NAME:Identity Service}
-      base-url: ${APP_BASE_URL}
-      verification-path: "/verify-email"
+      base-url: "https://kong.guardianservices.in/auth-service"
+      verification-path: "/api/v1/auth/email/verify"
       password-reset-path: "/reset-password"
       email-change-path: "/confirm-email-change"
     outbox:

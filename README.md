@@ -67,7 +67,7 @@ docker-compose up -d
 ./mvnw spring-boot:run -Pdev
 ```
 
-The API will be available at `http://localhost:8080/api`
+The API will be available at `http://localhost:8080/api`. Email verification links use `GET /api/v1/auth/email/verify/{productName}/{token}` when accessing the dev server directly.
 
 ### API Documentation
 
@@ -79,7 +79,8 @@ OpenAPI Spec: `http://localhost:8080/api/api-docs`
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | /v1/auth/register | Register new account |
-| POST | /v1/auth/email/verify | Verify email |
+| POST | /v1/auth/email/verify | Verify email with a JSON body |
+| GET | /v1/auth/email/verify/{productName}/{token} | Verify email from a link |
 | POST | /v1/auth/email/resend | Resend verification |
 | POST | /v1/auth/login | Password login |
 | POST | /v1/auth/mfa/verify | Complete MFA challenge |

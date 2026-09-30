@@ -146,8 +146,8 @@ app:
     email:
       from-address: "noreply@localhost"
       from-name: "Identity Service"
-      base-url: "http://localhost:3000"
-      verification-path: "/verify-email"
+      base-url: "http://localhost:8080/api"
+      verification-path: "/v1/auth/email/verify"
       password-reset-path: "/reset-password"
       email-change-path: "/confirm-email-change"
     outbox:
