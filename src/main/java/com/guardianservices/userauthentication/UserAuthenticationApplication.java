@@ -36,24 +36,26 @@ public class UserAuthenticationApplication extends SpringBootServletInitializer 
 
     @Bean
     public S3Client s3Client(StorageProperties storageProperties) {
-        return S3Client.builder()
+        var builder = S3Client.builder()
             .region(Region.of(storageProperties.getS3().getRegion()))
-            .credentialsProvider(DefaultCredentialsProvider.create())
-            .endpointOverride(storageProperties.getS3().getEndpointOverride() != null 
-                ? java.net.URI.create(storageProperties.getS3().getEndpointOverride()) 
-                : null)
-            .build();
+            .credentialsProvider(DefaultCredentialsProvider.create());
+        String endpointOverride = storageProperties.getS3().getEndpointOverride();
+        if (endpointOverride != null && !endpointOverride.isBlank()) {
+            builder.endpointOverride(java.net.URI.create(endpointOverride));
+        }
+        return builder.build();
     }
 
     @Bean
     public S3Presigner s3Presigner(StorageProperties storageProperties) {
-        return S3Presigner.builder()
+        var builder = S3Presigner.builder()
             .region(Region.of(storageProperties.getS3().getRegion()))
-            .credentialsProvider(DefaultCredentialsProvider.create())
-            .endpointOverride(storageProperties.getS3().getEndpointOverride() != null 
-                ? java.net.URI.create(storageProperties.getS3().getEndpointOverride()) 
-                : null)
-            .build();
+            .credentialsProvider(DefaultCredentialsProvider.create());
+        String endpointOverride = storageProperties.getS3().getEndpointOverride();
+        if (endpointOverride != null && !endpointOverride.isBlank()) {
+            builder.endpointOverride(java.net.URI.create(endpointOverride));
+        }
+        return builder.build();
     }
 
     @Bean
