@@ -111,7 +111,7 @@ app:
 
   storage:
     s3:
-      region: ${AWS_REGION:us-east-1}
+      region: ${AWS_REGION:ap-south-1}
       quarantine-bucket: ${S3_QUARANTINE_BUCKET}
       clean-bucket: ${S3_CLEAN_BUCKET}
       kms-key-id: ${S3_KMS_KEY_ID}
