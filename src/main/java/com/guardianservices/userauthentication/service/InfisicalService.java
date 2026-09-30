@@ -46,6 +46,7 @@ public class InfisicalService {
             for (Map.Entry<String, Object> entry : configMap.entrySet()) {
                 String key = entry.getKey();
                 String value = String.valueOf(entry.getValue());
+                logger.info("The infisical value is {}", value);
 
                 CacheConfig.CACHE.put(key, value);
                 count++;
