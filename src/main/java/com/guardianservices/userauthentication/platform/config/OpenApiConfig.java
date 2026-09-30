@@ -24,8 +24,8 @@ public class OpenApiConfig {
                 .license(new License().name("Proprietary"))
             )
             .servers(List.of(
-                new Server().url("https://api.example.com/api").description("Production"),
-                new Server().url("http://localhost:8080/api").description("Development")
+                new Server().url("https:/kon.guardianservices.in/auth-service").description("Production"),
+                new Server().url("http://localhost:10009/auth-service").description("Development")
             ))
             .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
             .addSecurityItem(new SecurityRequirement().addList("cookieAuth"))
